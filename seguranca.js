@@ -1,10 +1,5 @@
 (function() {
-    const clientesAutorizados = [
-        'angular-transportes.vercel.app', 
-        'paineleleitoral2026.vercel.app', // <-- Novo site adicionado aqui
-        'localhost',
-        '127.0.0.1'
-    ];
+    const clientesAutorizados = [''];
 
     const urlSitePai = (window.location !== window.parent.location) ? document.referrer : null;
 
