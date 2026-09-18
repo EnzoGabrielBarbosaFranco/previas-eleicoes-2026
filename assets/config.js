@@ -33,7 +33,16 @@ window.PREVIA_ELEITORAL_CONFIG = {
     interface: {
         paginaInicial: 'inicio',
         rotuloInicio: 'Visão geral',
-        rotuloCandidatos: 'Candidatos'
+        rotuloCandidatos: 'Candidatos',
+        ordemDestaquePresidente: [
+            'LULA',
+            'FLAVIO BOLSONARO',
+            'ESCRITOR AUGUSTO CURY',
+            'RENAN SANTOS',
+            'RONALDO CAIADO',
+            'ZEMA',
+            'PABLO MARCAL'
+        ]
     },
 
     fonteDados: {

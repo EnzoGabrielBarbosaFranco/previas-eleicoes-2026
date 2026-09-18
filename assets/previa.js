@@ -432,11 +432,11 @@
         }
 
         const termo = normalizarBusca(estado.busca);
-        const candidatos = candidatosDoCargo().filter((candidato) => {
+        const candidatos = ordenarCandidatos(candidatosDoCargo().filter((candidato) => {
             const correspondePartido = estado.partido === 'todos' || candidato.partido === estado.partido;
             const alvo = normalizarBusca(`${candidato.nome} ${candidato.numero} ${candidato.partido}`);
             return correspondePartido && (!termo || alvo.includes(termo));
-        });
+        }));
 
         const rotuloTotal = `${candidatos.length} candidato${candidatos.length === 1 ? '' : 's'}`;
         total.textContent = rotuloTotal;
@@ -448,6 +448,24 @@
         lista.innerHTML = candidatos.map((candidato, indice) => cardCandidatoHtml(candidato, indice)).join('');
         estado.inicioAutoScroll = Date.now() + 1800;
         prepararRolagem(lista);
+    }
+
+    function ordenarCandidatos(candidatos) {
+        if (estado.cargo !== '1') return candidatos;
+
+        const nomesPrioritarios = configuracao.interface.ordemDestaquePresidente || [];
+        const prioridades = new Map(
+            nomesPrioritarios.map((nome, indice) => [normalizarBusca(nome), indice])
+        );
+
+        return candidatos
+            .map((candidato, indiceOriginal) => ({ candidato, indiceOriginal }))
+            .sort((itemA, itemB) => {
+                const prioridadeA = prioridades.get(normalizarBusca(itemA.candidato.nome)) ?? Number.MAX_SAFE_INTEGER;
+                const prioridadeB = prioridades.get(normalizarBusca(itemB.candidato.nome)) ?? Number.MAX_SAFE_INTEGER;
+                return prioridadeA - prioridadeB || itemA.indiceOriginal - itemB.indiceOriginal;
+            })
+            .map(({ candidato }) => candidato);
     }
 
     function cardCandidatoHtml(candidato, indice) {

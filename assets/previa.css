@@ -989,7 +989,7 @@ body[data-formato="horizontal"] #previa-widget {
 }
 
 .pe-widget--horizontal .pe-nav-lateral button {
-    min-height: 38px;
+    min-height: 28px;
     gap: 5px;
     padding: 6px 8px;
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1024,7 +1024,7 @@ body[data-formato="horizontal"] #previa-widget {
 }
 
 .pe-widget--horizontal .pe-inicio {
-    grid-template-columns: 62px minmax(180px, 1fr) minmax(300px, 0.8fr);
+    grid-template-columns: 62px minmax(180px, 0.55fr) minmax(430px, 1fr);
     grid-template-rows: 1fr;
     gap: 14px;
     padding: 8px 18px;
@@ -1064,9 +1064,11 @@ body[data-formato="horizontal"] #previa-widget {
 .pe-widget--horizontal .pe-acoes a {
     min-height: 34px;
     flex: 1;
+    justify-content: center;
     padding: 6px 9px;
     border-radius: 9px;
     font-size: 0.57rem;
+    white-space: nowrap;
 }
 
 .pe-widget--horizontal .pe-acoes svg {
@@ -1076,11 +1078,11 @@ body[data-formato="horizontal"] #previa-widget {
 }
 
 .pe-widget--horizontal .pe-cta-amplo {
-    display: none;
+    display: inline;
 }
 
 .pe-widget--horizontal .pe-cta-curto {
-    display: inline;
+    display: none;
 }
 
 .pe-widget--horizontal .pe-candidatos {
@@ -1169,7 +1171,7 @@ body[data-formato="horizontal"] #previa-widget {
     align-self: center;
     grid-column: 2;
     grid-row: 2 / 4;
-    font-size: 0.48rem;
+    font-size: 0.58rem;
 }
 
 .pe-widget--horizontal .pe-numero {
@@ -1512,7 +1514,7 @@ body[data-formato="300x250"] #previa-widget {
 .pe-widget--300x250 .pe-nav-mobile button {
     gap: 5px;
     padding: 3px 6px;
-    font-size: 0.48rem;
+    font-size: 0.53rem;
 }
 
 .pe-widget--300x250 .pe-nav-mobile svg {
@@ -1555,12 +1557,15 @@ body[data-formato="300x250"] #previa-widget {
 }
 
 .pe-widget--300x250 .pe-chamada p {
-    font-size: 0.48rem;
+    color: var(--pe-texto);
+    font-size: 0.57rem;
+    font-weight: 700;
 }
 
 .pe-widget--300x250 .pe-acoes {
-    display: flex;
+    display: grid;
     grid-column: 1 / -1;
+    grid-template-columns: 1fr 1fr;
     min-width: 0;
     gap: 6px;
     padding: 0;
@@ -1574,7 +1579,14 @@ body[data-formato="300x250"] #previa-widget {
     gap: 5px;
     padding: 4px 6px;
     border-radius: 7px;
-    font-size: 0.45rem;
+    font-size: 0.54rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.pe-widget--300x250 .pe-acoes a.pe-cta {
+    grid-column: 1 / -1;
+    justify-content: center;
 }
 
 .pe-widget--300x250 .pe-acoes svg {
@@ -1584,11 +1596,11 @@ body[data-formato="300x250"] #previa-widget {
 }
 
 .pe-widget--300x250 .pe-cta-amplo {
-    display: none;
+    display: inline;
 }
 
 .pe-widget--300x250 .pe-cta-curto {
-    display: inline;
+    display: none;
 }
 
 .pe-widget--300x250 .pe-filtros {
@@ -1662,7 +1674,7 @@ body[data-formato="300x250"] #previa-widget {
     grid-row: 1;
     justify-self: start;
     margin: 0;
-    font-size: 0.38rem;
+    font-size: 0.44rem;
 }
 
 .pe-widget--300x250 .pe-card h2 {
@@ -1676,7 +1688,7 @@ body[data-formato="300x250"] #previa-widget {
 .pe-widget--300x250 .pe-partido {
     grid-column: 2;
     grid-row: 3;
-    font-size: 0.43rem;
+    font-size: 0.63rem;
 }
 
 .pe-widget--300x250 .pe-numero {
@@ -1684,7 +1696,7 @@ body[data-formato="300x250"] #previa-widget {
     grid-row: 1 / -1;
     align-self: center;
     margin: 0;
-    font-size: 0.7rem;
+    font-size: 0.9rem;
 }
 
 .pe-widget--300x250 .pe-estado {
