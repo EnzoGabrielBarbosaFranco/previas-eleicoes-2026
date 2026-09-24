@@ -517,27 +517,65 @@
         };
         lista.addEventListener('pointerup', finalizar);
         lista.addEventListener('pointercancel', finalizar);
-        lista.addEventListener('mouseenter', () => { estado.pausado = true; });
-        lista.addEventListener('mouseleave', () => {
-            estado.pausado = false;
-            estado.inicioAutoScroll = Date.now() + 800;
-        });
+        lista.addEventListener('lostpointercapture', finalizar);
+
+        if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+            lista.addEventListener('mouseenter', () => { estado.pausado = true; });
+            lista.addEventListener('mouseleave', () => {
+                estado.pausado = false;
+                estado.inicioAutoScroll = Date.now() + 800;
+            });
+        }
     }
 
     let ultimoFrame = performance.now();
+    let listaAutoScroll = null;
+    let posicaoAutoScroll = 0;
+    let autoScrollAtivo = false;
+
+    function reiniciarAutoScroll() {
+        autoScrollAtivo = false;
+        listaAutoScroll = null;
+        estado.inicioAutoScroll = Date.now() + 500;
+    }
+
+    window.addEventListener('resize', reiniciarAutoScroll, { passive: true });
+    window.visualViewport?.addEventListener('resize', reiniciarAutoScroll, { passive: true });
+
     function animarRolagem(tempo) {
         const lista = document.getElementById('pe-lista-candidatos');
-        const deveAnimar = (formato === 'horizontal' || formato === '970x250' || formato === '970x250x100')
-            && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const formatoComRolagem = formato === 'horizontal' || formato === '970x250' || formato === '970x250x100';
+        const reduzirMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const deveAnimar = formatoComRolagem && (formato === '970x250x100' || !reduzirMovimento);
         const delta = Math.min(tempo - ultimoFrame, 50);
         ultimoFrame = tempo;
+        const podeRolar = deveAnimar
+            && lista
+            && !estado.pausado
+            && Date.now() >= estado.inicioAutoScroll
+            && lista.scrollWidth > lista.clientWidth;
 
-        if (deveAnimar && lista && !estado.pausado && Date.now() >= estado.inicioAutoScroll && lista.scrollWidth > lista.clientWidth) {
-            lista.scrollLeft += delta * 0.035;
-            if (lista.scrollLeft >= lista.scrollWidth - lista.clientWidth - 1) {
-                lista.scrollLeft = 0;
-                estado.inicioAutoScroll = Date.now() + 1000;
+        if (podeRolar) {
+            if (!autoScrollAtivo || listaAutoScroll !== lista) {
+                listaAutoScroll = lista;
+                posicaoAutoScroll = lista.scrollLeft;
             }
+
+            posicaoAutoScroll += delta * 0.035;
+            const limite = Math.max(0, lista.scrollWidth - lista.clientWidth);
+
+            if (posicaoAutoScroll >= limite - 1) {
+                lista.scrollLeft = 0;
+                posicaoAutoScroll = 0;
+                estado.inicioAutoScroll = Date.now() + 1000;
+                autoScrollAtivo = false;
+            } else {
+                lista.scrollLeft = posicaoAutoScroll;
+                autoScrollAtivo = true;
+            }
+        } else {
+            autoScrollAtivo = false;
+            if (lista) posicaoAutoScroll = lista.scrollLeft;
         }
         window.requestAnimationFrame(animarRolagem);
     }
