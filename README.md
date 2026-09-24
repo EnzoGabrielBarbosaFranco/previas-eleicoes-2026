@@ -16,7 +16,9 @@ Use `?view=candidatos` para abrir diretamente a área de candidatos.
 
 ## Incorporar em outro site
 
-Carregue `embed.js` uma vez na página e identifique o formato na classe do iframe. O script aplica a largura e a altura nominais no desktop e ajusta os formatos largos quando o espaço disponível tiver até 760 px.
+As dimensões precisam estar na própria tag `<iframe>` da página que incorpora a prévia. Sem `width` e `height`, o navegador usa o tamanho padrão de 300 × 150. O conteúdo hospedado na Vercel não consegue corrigir sozinho o tamanho do iframe quando o portal está em outro domínio.
+
+Carregue `embed.js` uma vez na página hospedeira e identifique o formato na classe do iframe. O script preserva as dimensões nominais, protege o iframe do CSS geral do portal e ajusta a altura dos formatos largos quando o espaço disponível tiver até 760 px.
 
 ```html
 <script src="https://previas-eleicoes-2026.vercel.app/embed.js" defer></script>
@@ -26,13 +28,24 @@ Carregue `embed.js` uma vez na página e identifique o formato na classe do ifra
   src="https://previas-eleicoes-2026.vercel.app/970x250.html"
   width="970"
   height="250"
+  style="display:block;width:min(970px, 100%) !important;height:250px !important;margin-inline:auto;border:0;"
   title="Prévia 970 por 250 das Eleições 2026"
   loading="lazy"
   scrolling="no">
 </iframe>
 ```
 
-As classes disponíveis são `previa-index`, `previa-horizontal`, `previa-970x250`, `previa-300x600` e `previa-300x250`. Os atributos `width` e `height` evitam mudança de layout antes do carregamento do script; o `embed.js` reforça essas dimensões mesmo quando o CSS geral do portal estiliza todos os iframes.
+Use estas dimensões diretamente nas respectivas tags:
+
+| Classe | `width` | `height` | largura no `style` |
+| --- | ---: | ---: | --- |
+| `previa-index` | 1180 | 680 | `min(1180px, 100%)` |
+| `previa-horizontal` | 1200 | 100 | `min(1200px, 100%)` |
+| `previa-970x250` | 970 | 250 | `min(970px, 100%)` |
+| `previa-300x600` | 300 | 600 | `min(300px, 100%)` |
+| `previa-300x250` | 300 | 250 | `min(300px, 100%)` |
+
+Os atributos e o estilo inline evitam o estado inicial de 300 × 150. O `embed.js` deve ser carregado no portal, fora do iframe; ele é necessário para trocar corretamente a altura de `previa-index` e `previa-horizontal` no mobile.
 
 ## Personalizar um cliente
 
