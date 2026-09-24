@@ -9,6 +9,7 @@ Com o servidor do frontend ativo na porta 5500:
 - `http://127.0.0.1:5500/`
 - `http://127.0.0.1:5500/horizontal.html`
 - `http://127.0.0.1:5500/970x250.html`
+- `http://127.0.0.1:5500/970x250x100.html`
 - `http://127.0.0.1:5500/300x600.html`
 - `http://127.0.0.1:5500/300x250.html`
 
@@ -18,7 +19,7 @@ Use `?view=candidatos` para abrir diretamente a área de candidatos.
 
 As dimensões precisam estar na própria tag `<iframe>` da página que incorpora a prévia. Sem `width` e `height`, o navegador usa o tamanho padrão de 300 × 150. O conteúdo hospedado na Vercel não consegue corrigir sozinho o tamanho do iframe quando o portal está em outro domínio.
 
-Carregue `embed.js` uma vez na página hospedeira e identifique o formato na classe do iframe. O script preserva as dimensões nominais, protege o iframe do CSS geral do portal e ajusta a altura dos formatos largos quando o espaço disponível tiver até 760 px.
+Carregue `embed.js` uma vez na página hospedeira e identifique o formato na classe do iframe. O script preserva as dimensões nominais e ajusta a altura conforme o formato e o espaço disponível.
 
 ```html
 <script src="https://previas-eleicoes-2026.vercel.app/embed.js" defer></script>
@@ -28,7 +29,6 @@ Carregue `embed.js` uma vez na página hospedeira e identifique o formato na cla
   src="https://previas-eleicoes-2026.vercel.app/970x250.html"
   width="970"
   height="250"
-  style="display:block;width:min(970px, 100%) !important;height:250px !important;margin-inline:auto;border:0;"
   title="Prévia 970 por 250 das Eleições 2026"
   loading="lazy"
   scrolling="no">
@@ -42,8 +42,11 @@ Use estas dimensões diretamente nas respectivas tags:
 | `previa-index` | 1180 | 680 | `min(1180px, 100%)` |
 | `previa-horizontal` | 1200 | 100 | `min(1200px, 100%)` |
 | `previa-970x250` | 970 | 250 | `min(970px, 100%)` |
+| `previa-970x250x100` | 970 | 250 no desktop / 100 no mobile | `min(970px, 100%)` |
 | `previa-300x600` | 300 | 600 | `min(300px, 100%)` |
 | `previa-300x250` | 300 | 250 | `min(300px, 100%)` |
+
+Para portais que reservam 250px no desktop e somente 100px em larguras menores, use `970x250x100.html` com a classe `previa-970x250x100`. A versão curta oculta ações, resumo e navegação, mas mantém marca, turno, contagem e título.
 
 Os atributos e o estilo inline evitam o estado inicial de 300 × 150. O `embed.js` deve ser carregado no portal, fora do iframe; ele é necessário para trocar corretamente a altura de `previa-index` e `previa-horizontal` no mobile.
 

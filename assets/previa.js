@@ -161,9 +161,13 @@
     }
 
     function montarEstrutura() {
+        const classesFormato = formato === '970x250x100'
+            ? 'pe-widget--970x250 pe-widget--970x250x100'
+            : `pe-widget--${escaparHtml(formato)}`;
+
         document.title = `${configuracao.marca.nome} ${configuracao.marca.edicao || ''} — Eleições ${configuracao.eleicao.ano}`.trim();
         raiz.innerHTML = `
-            <article class="pe-widget pe-widget--${escaparHtml(formato)}">
+            <article class="pe-widget ${classesFormato}">
                 <aside class="pe-lateral">
                     ${marcaHtml()}
                     <span class="pe-turno">${configuracao.eleicao.turno}º turno</span>
@@ -235,10 +239,10 @@
                     <p>${capitalizar(dataFormatada)}</p>
                 </div>
                 <div class="pe-acoes">
-                    <a href="${escaparHtml(configuracao.eleicao.urlTse)}" target="_blank" rel="noopener noreferrer">
+                    <a href="${escaparHtml(configuracao.eleicao.urlTse)}" target="_blank" rel="noopener noreferrer" aria-label="Acompanhe no TSE">
                         ${icone('predio')}<span>Acompanhe no TSE</span>
                     </a>
-                    <a href="${escaparHtml(configuracao.eleicao.urlLocalVotacao)}" target="_blank" rel="noopener noreferrer">
+                    <a href="${escaparHtml(configuracao.eleicao.urlLocalVotacao)}" target="_blank" rel="noopener noreferrer" aria-label="Consulte seu local de votação">
                         ${icone('pin')}<span>Consulte seu local</span>
                     </a>
                     <a class="pe-cta" href="${escaparHtml(configuracao.eleicao.urlAdquirir)}" target="_blank" rel="noopener noreferrer" aria-label="Adquira o Painel Eleitoral 2026">
@@ -523,7 +527,7 @@
     let ultimoFrame = performance.now();
     function animarRolagem(tempo) {
         const lista = document.getElementById('pe-lista-candidatos');
-        const deveAnimar = (formato === 'horizontal' || formato === '970x250')
+        const deveAnimar = (formato === 'horizontal' || formato === '970x250' || formato === '970x250x100')
             && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const delta = Math.min(tempo - ultimoFrame, 50);
         ultimoFrame = tempo;
