@@ -27,7 +27,7 @@ window.PREVIA_ELEITORAL_CONFIG = {
         cargoPadrao: '1',
         urlTse: 'https://resultados.tse.jus.br/',
         urlLocalVotacao: 'https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/onde-votar',
-        urlAdquirir: 'https://paineleleitoral2026.vercel.app/'
+        urlAdquirir: 'https://www.paineleleitoralnews.com.br/'
     },
 
     interface: {
