@@ -15,7 +15,7 @@
     const estado = {
         pagina: normalizarPagina(parametros.get('view') || configuracao.interface.paginaInicial),
         cargo: configuracao.eleicao.cargoPadrao,
-        uf: String(configuracao.eleicao.localPadrao || 'MS').toLowerCase(),
+        uf: String(configuracao.eleicao.localPadrao || 'SP').toLowerCase(),
         partido: 'todos',
         busca: '',
         candidatos: [],
@@ -359,7 +359,7 @@
         } else if (cargo.abrangencia === 'distrital') {
             estado.uf = 'df';
         } else if (estado.uf === 'br' || !ufsValidas.includes(estado.uf) || (cargo.codigo === '7' && estado.uf === 'df')) {
-            estado.uf = String(configuracao.eleicao.localPadrao || 'MS').toLowerCase();
+            estado.uf = String(configuracao.eleicao.localPadrao || 'SP').toLowerCase();
         }
     }
 

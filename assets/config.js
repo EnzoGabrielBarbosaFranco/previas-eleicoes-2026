@@ -23,7 +23,7 @@ window.PREVIA_ELEITORAL_CONFIG = {
         ano: 2026,
         turno: 1,
         dataPrimeiroTurno: '2026-10-04T17:00:00-03:00',
-        localPadrao: 'MS',
+        localPadrao: 'SP',
         cargoPadrao: '1',
         urlTse: 'https://resultados.tse.jus.br/',
         urlLocalVotacao: 'https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/onde-votar',

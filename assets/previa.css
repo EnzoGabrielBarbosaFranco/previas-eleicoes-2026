@@ -1196,12 +1196,12 @@ body[data-formato="horizontal"] #previa-widget {
 
 /* Formatos 300 */
 body[data-formato="300x600"] #previa-widget {
-    width: 300px;
+    width: min(300px, 100vw);
     height: 600px;
 }
 
 body[data-formato="300x250"] #previa-widget {
-    width: 300px;
+    width: min(300px, 100vw);
     height: 250px;
 }
 

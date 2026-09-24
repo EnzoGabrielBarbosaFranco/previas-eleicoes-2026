@@ -14,6 +14,26 @@ Com o servidor do frontend ativo na porta 5500:
 
 Use `?view=candidatos` para abrir diretamente a área de candidatos.
 
+## Incorporar em outro site
+
+Carregue `embed.js` uma vez na página e identifique o formato na classe do iframe. O script aplica a largura e a altura nominais no desktop e ajusta os formatos largos quando o espaço disponível tiver até 760 px.
+
+```html
+<script src="https://previas-eleicoes-2026.vercel.app/embed.js" defer></script>
+
+<iframe
+  class="previa-eleitoral previa-970x250"
+  src="https://previas-eleicoes-2026.vercel.app/970x250.html"
+  width="970"
+  height="250"
+  title="Prévia 970 por 250 das Eleições 2026"
+  loading="lazy"
+  scrolling="no">
+</iframe>
+```
+
+As classes disponíveis são `previa-index`, `previa-horizontal`, `previa-970x250`, `previa-300x600` e `previa-300x250`. Os atributos `width` e `height` evitam mudança de layout antes do carregamento do script; o `embed.js` reforça essas dimensões mesmo quando o CSS geral do portal estiliza todos os iframes.
+
 ## Personalizar um cliente
 
 Todas as opções ficam em `assets/config.js`:
