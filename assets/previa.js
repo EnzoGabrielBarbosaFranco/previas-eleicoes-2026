@@ -161,9 +161,11 @@
     }
 
     function montarEstrutura() {
-        const classesFormato = formato === '970x250x100'
-            ? 'pe-widget--970x250 pe-widget--970x250x100'
-            : `pe-widget--${escaparHtml(formato)}`;
+        const classesComBase = {
+            '970x90': 'pe-widget--horizontal pe-widget--970x90',
+            '970x250x100': 'pe-widget--970x250 pe-widget--970x250x100'
+        };
+        const classesFormato = classesComBase[formato] || `pe-widget--${escaparHtml(formato)}`;
 
         document.title = `${configuracao.marca.nome} ${configuracao.marca.edicao || ''} — Eleições ${configuracao.eleicao.ano}`.trim();
         raiz.innerHTML = `
@@ -281,7 +283,7 @@
     }
 
     function renderizarAreaCandidatos(painel) {
-        const formatoCompacto = formato === '300x250' || formato === 'horizontal';
+        const formatoCompacto = formato === '300x250' || formato === 'horizontal' || formato === '970x90';
         const opcoesCargo = configuracao.cargos.map((cargo) => `
             <option value="${escaparHtml(cargo.codigo)}" ${cargo.codigo === estado.cargo ? 'selected' : ''}>
                 ${escaparHtml(formatoCompacto ? cargo.nomeCompacto : cargo.nome)}
@@ -378,7 +380,7 @@
             return uf.sigla !== 'br';
         });
         seletor.innerHTML = ufs.map((uf) => `
-            <option value="${escaparHtml(uf.sigla)}">${escaparHtml((formato === '300x250' || formato === 'horizontal') && uf.sigla === 'br' ? 'Brasil' : uf.nome)}</option>
+            <option value="${escaparHtml(uf.sigla)}">${escaparHtml((formato === '300x250' || formato === 'horizontal' || formato === '970x90') && uf.sigla === 'br' ? 'Brasil' : uf.nome)}</option>
         `).join('');
         seletor.value = estado.uf;
         seletor.disabled = nacional || distrital;
@@ -402,7 +404,7 @@
     function preencherPartidos(seletor) {
         const partidos = [...new Set(candidatosDoCargo().map((candidato) => candidato.partido).filter(Boolean))]
             .sort((a, b) => a.localeCompare(b, 'pt-BR'));
-        const rotuloTodos = formato === '300x250' || formato === 'horizontal' ? 'Partidos' : 'Todos os partidos';
+        const rotuloTodos = formato === '300x250' || formato === 'horizontal' || formato === '970x90' ? 'Partidos' : 'Todos os partidos';
         seletor.innerHTML = [
             `<option value="todos">${rotuloTodos}</option>`,
             ...partidos.map((partido) => `<option value="${escaparHtml(partido)}">${escaparHtml(partido)}</option>`)
@@ -544,7 +546,7 @@
 
     function animarRolagem(tempo) {
         const lista = document.getElementById('pe-lista-candidatos');
-        const formatoComRolagem = formato === 'horizontal' || formato === '970x250' || formato === '970x250x100';
+        const formatoComRolagem = formato === 'horizontal' || formato === '970x90' || formato === '970x250' || formato === '970x250x100';
         const reduzirMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const deveAnimar = formatoComRolagem && (formato === '970x250x100' || !reduzirMovimento);
         const delta = Math.min(tempo - ultimoFrame, 50);

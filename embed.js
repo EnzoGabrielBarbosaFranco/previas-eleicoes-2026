@@ -6,6 +6,7 @@
     const formatos = {
         index: { largura: 1180, altura: 680, alturaMobile: 250 },
         horizontal: { largura: 1200, altura: 100, alturaMobile: 250 },
+        '970x90': { largura: 970, altura: 90, larguraMobile: 300, alturaMobile: 250 },
         '970x250': { largura: 970, altura: 250 },
         '970x250x100': { largura: 970, altura: 250, alturaMobile: 100, limiteMobile: 969 },
         '300x600': { largura: 300, altura: 600 },
@@ -40,7 +41,7 @@
 
         aplicarEstilo(iframe, 'display', 'block');
         aplicarEstilo(iframe, 'box-sizing', 'border-box');
-        aplicarEstilo(iframe, 'width', formato === '970x250x100' ? '100%' : `${dimensoes.largura}px`);
+        aplicarEstilo(iframe, 'width', formato === '970x250x100' ? '100%' : `min(${dimensoes.largura}px, 100%)`);
         aplicarEstilo(iframe, 'max-width', `${dimensoes.largura}px`);
         aplicarEstilo(iframe, 'height', `${dimensoes.altura}px`);
         aplicarEstilo(iframe, 'margin-inline', 'auto');
@@ -55,8 +56,12 @@
             const limiteMobile = dimensoes.limiteMobile || LIMITE_MOBILE;
             const mobile = Math.min(window.innerWidth, larguraDisponivel) <= limiteMobile;
             const altura = mobile ? dimensoes.alturaMobile : dimensoes.altura;
+            const largura = mobile && dimensoes.larguraMobile ? dimensoes.larguraMobile : dimensoes.largura;
 
+            iframe.width = String(largura);
             iframe.height = String(altura);
+            aplicarEstilo(iframe, 'width', `min(${largura}px, 100%)`);
+            aplicarEstilo(iframe, 'max-width', `${largura}px`);
             aplicarEstilo(iframe, 'height', `${altura}px`);
         };
 
