@@ -7,7 +7,7 @@ window.PREVIA_ELEITORAL_CONFIG = {
     marca: {
         nome: 'PAINEL ELEITORAL',
         sigla: 'PE',
-        edicao: '26',
+        edicao: '2026',
         regiao: '',
         logoUrl: '',
         logoAlt: 'Marca do portal'
