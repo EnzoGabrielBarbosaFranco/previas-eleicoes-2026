@@ -40,8 +40,7 @@ window.PREVIA_ELEITORAL_CONFIG = {
             'ESCRITOR AUGUSTO CURY',
             'RENAN SANTOS',
             'RONALDO CAIADO',
-            'ZEMA',
-            'PABLO MARCAL'
+            'ZEMA'
         ]
     },
 

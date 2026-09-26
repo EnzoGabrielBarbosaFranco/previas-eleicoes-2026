@@ -82,6 +82,9 @@ A prévia não consulta o Worker de resultados e não exibe candidatos do simula
 - presidente usa `data/2026/br/1.json`;
 - governador, senador e deputados usam `data/2026/<uf>/<cargo>.json`;
 - deputado estadual não é oferecido para o DF; nesse caso o cargo correto é deputado distrital;
+- os JSONs exibem somente candidaturas sem situação final impeditiva; registros indeferidos em definitivo, renunciados, cancelados, não conhecidos ou com falecimento são excluídos;
+- candidaturas pendentes de julgamento ou com recurso permanecem visíveis até uma decisão final;
+- `data/2026/manifest.json` e o bloco `meta` de cada arquivo informam separadamente a data da extração cadastral e a data de verificação das situações no DivulgaCandContas;
 - os filtros de partido e busca funcionam no navegador;
 - se o arquivo ainda não tiver sido publicado, o widget informa que aguarda a base oficial;
 - quando os ZIPs oficiais de fotos forem informados ao gerador, as imagens são incorporadas como miniaturas WebP; candidatos sem foto continuam exibindo as iniciais.
@@ -91,6 +94,12 @@ Depois de baixar `consulta_cand_2026.zip` no Portal de Dados Abertos do TSE, ger
 ```powershell
 cd C:\Users\Enzo\Projetos\backend-eleicoes\candidatos-2026
 py gerar_dados.py --arquivo "C:\Users\Enzo\Downloads\consulta_cand_2026.zip" --saida "C:\Users\Enzo\Projetos\previas-eleicao-2026\data"
+```
+
+Depois de aplicar as situações atuais do DivulgaCandContas, valide a consistência dos 109 arquivos antes de publicar:
+
+```powershell
+node scripts/validar-candidatos-2026.js
 ```
 
 Depois, publique o front normalmente na Vercel. Os visitantes leem os arquivos pela própria CDN do site, sem fazer requisições ao TSE e sem consumir o Worker de apuração.

@@ -398,7 +398,9 @@
     }
 
     function candidatosDoCargo() {
-        return estado.candidatos.filter((candidato) => String(candidato.cargo) === estado.cargo);
+        return estado.candidatos.filter((candidato) =>
+            String(candidato.cargo) === estado.cargo && candidato.apto !== false
+        );
     }
 
     function preencherPartidos(seletor) {
