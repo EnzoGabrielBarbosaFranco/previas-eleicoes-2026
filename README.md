@@ -11,6 +11,7 @@ Com o servidor do frontend ativo na porta 5500:
 - `http://127.0.0.1:5500/970x90.html`
 - `http://127.0.0.1:5500/970x250.html`
 - `http://127.0.0.1:5500/970x250x100.html`
+- `http://127.0.0.1:5500/1260x100.html`
 - `http://127.0.0.1:5500/300x600.html`
 - `http://127.0.0.1:5500/300x250.html`
 
@@ -45,14 +46,15 @@ Use estas dimensões diretamente nas respectivas tags:
 | `previa-970x90` | 970 no desktop / 300 no mobile | 90 no desktop / 250 no mobile | `min(970px, 100%)` / `min(300px, 100%)` |
 | `previa-970x250` | 970 | 250 | `min(970px, 100%)` |
 | `previa-970x250x100` | 970 | 250 no desktop / 100 no mobile | `min(970px, 100%)` |
+| `previa-1260x100` | 1260 | 100 | `min(1260px, 100%)` |
 | `previa-300x600` | 300 | 600 | `min(300px, 100%)` |
 | `previa-300x250` | 300 | 250 | `min(300px, 100%)` |
 
-Para portais que reservam 250px no desktop e somente 100px em larguras menores, use `970x250x100.html` com a classe `previa-970x250x100`. A versão curta oculta ações, resumo e navegação, mas mantém marca, turno, contagem e título.
+Os formatos `970x250x100.html` e `1260x100.html` mantêm a visão geral, a marca e a navegação dos demais banners. O primeiro usa 970 × 250 no desktop e passa a ocupar toda a largura disponível com 100px de altura em telas de até 760px. O segundo usa 1260 × 100 e também reduz a largura até 100% do espaço disponível. Na área de candidatos, o cabeçalho é removido no mobile para manter os quatro filtros e a lista acessíveis dentro dos 100px.
 
 Para o banner 970 × 90 que se transforma em 300 × 250 abaixo de 760px, use `970x90.html` com a classe `previa-970x90`. O `embed.js` ajusta largura e altura do iframe automaticamente.
 
-Os atributos e o estilo inline evitam o estado inicial de 300 × 150. O `embed.js` deve ser carregado no portal, fora do iframe; ele é necessário para trocar corretamente as dimensões responsivas de `previa-index`, `previa-horizontal` e `previa-970x90` no mobile.
+Os atributos e o estilo inline evitam o estado inicial de 300 × 150. O `embed.js` deve ser carregado no portal, fora do iframe; ele é necessário para trocar corretamente as dimensões responsivas de `previa-index`, `previa-horizontal`, `previa-970x90` e `previa-970x250x100` no mobile.
 
 ## Personalizar um cliente
 

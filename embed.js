@@ -8,7 +8,8 @@
         horizontal: { largura: 1200, altura: 100, alturaMobile: 250 },
         '970x90': { largura: 970, altura: 90, larguraMobile: 300, alturaMobile: 250 },
         '970x250': { largura: 970, altura: 250 },
-        '970x250x100': { largura: 970, altura: 250, alturaMobile: 100, limiteMobile: 969 },
+        '970x250x100': { largura: 970, altura: 250, alturaMobile: 100 },
+        '1260x100': { largura: 1260, altura: 100 },
         '300x600': { largura: 300, altura: 600 },
         '300x250': { largura: 300, altura: 250 }
     };
@@ -41,7 +42,7 @@
 
         aplicarEstilo(iframe, 'display', 'block');
         aplicarEstilo(iframe, 'box-sizing', 'border-box');
-        aplicarEstilo(iframe, 'width', formato === '970x250x100' ? '100%' : `min(${dimensoes.largura}px, 100%)`);
+        aplicarEstilo(iframe, 'width', `min(${dimensoes.largura}px, 100%)`);
         aplicarEstilo(iframe, 'max-width', `${dimensoes.largura}px`);
         aplicarEstilo(iframe, 'height', `${dimensoes.altura}px`);
         aplicarEstilo(iframe, 'margin-inline', 'auto');
