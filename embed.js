@@ -1,20 +1,24 @@
 (function () {
     'use strict';
 
+    const TAG = 'previa-eleitoral-2026';
+    const BASE_URL = 'https://previas-eleicoes-2026.vercel.app';
+
     const LIMITE_MOBILE = 760;
     const MAX_NIVEIS_CONTAINER = 5;
-    const SELETOR = 'iframe.previa-eleitoral';
 
-    const formatos = {
+    const FORMATOS = {
         index: {
             largura: 1180,
             altura: 680,
+            larguraMobile: 'disponivel',
             alturaMobile: 250
         },
 
         horizontal: {
             largura: 1200,
             altura: 100,
+            larguraMobile: 'disponivel',
             alturaMobile: 250
         },
 
@@ -22,7 +26,7 @@
             largura: 970,
             altura: 90,
             larguraMobile: 300,
-            alturaMobile: 100
+            alturaMobile: 250
         },
 
         '970x250': {
@@ -33,12 +37,15 @@
         '970x250x100': {
             largura: 970,
             altura: 250,
+            larguraMobile: 'disponivel',
             alturaMobile: 100
         },
 
         '1260x100': {
             largura: 1260,
-            altura: 100
+            altura: 100,
+            larguraMobile: 'disponivel',
+            alturaMobile: 100
         },
 
         '300x600': {
@@ -52,422 +59,588 @@
         }
     };
 
-    /*
-     * Guarda o estilo original dos containers que precisarmos alterar.
-     * Isso permite restaurar quando, por exemplo:
-     *
-     * desktop = 970x90
-     * mobile  = 300x100
-     *
-     * ou qualquer outro formato que mude de altura.
-     */
-    const estilosOriginais = new WeakMap();
-    const containersPorIframe = new WeakMap();
-
-    function obterFormato(iframe) {
-        const classe = Object.keys(formatos).find((formato) =>
-            iframe.classList.contains(`previa-${formato}`)
-        );
-
-        if (classe) return classe;
-
-        try {
-            const arquivo = new URL(
-                iframe.src,
-                document.baseURI
-            ).pathname.split('/').pop() || 'index.html';
-
-            const formato = arquivo.replace(/\.html$/i, '');
-
-            return Object.hasOwn(formatos, formato)
-                ? formato
-                : 'index';
-        } catch {
-            return 'index';
-        }
+    if (customElements.get(TAG)) {
+        return;
     }
 
-    function aplicarEstilo(elemento, propriedade, valor) {
-        elemento.style.setProperty(
-            propriedade,
-            valor,
-            'important'
-        );
-    }
+    class PreviaEleitoral extends HTMLElement {
+        constructor() {
+            super();
 
-    function salvarEstiloOriginal(elemento) {
-        if (estilosOriginais.has(elemento)) return;
+            this.attachShadow({ mode: 'open' });
 
-        const propriedades = [
-            'height',
-            'min-height',
-            'max-height',
-            'overflow',
-            'overflow-x',
-            'overflow-y'
-        ];
+            this._iframe = null;
+            this._resizeObserver = null;
+            this._resizeHandler = () => this._agendarAjuste();
+            this._frame = null;
 
-        const original = {};
-
-        propriedades.forEach((propriedade) => {
-            original[propriedade] = {
-                valor: elemento.style.getPropertyValue(propriedade),
-                prioridade: elemento.style.getPropertyPriority(propriedade)
-            };
-        });
-
-        estilosOriginais.set(elemento, original);
-    }
-
-    function restaurarEstiloOriginal(elemento) {
-        const original = estilosOriginais.get(elemento);
-
-        if (!original) return;
-
-        Object.entries(original).forEach(
-            ([propriedade, configuracao]) => {
-                if (configuracao.valor) {
-                    elemento.style.setProperty(
-                        propriedade,
-                        configuracao.valor,
-                        configuracao.prioridade
-                    );
-                } else {
-                    elemento.style.removeProperty(propriedade);
-                }
-            }
-        );
-    }
-
-    function restaurarContainers(iframe) {
-        const containers = containersPorIframe.get(iframe);
-
-        if (!containers) return;
-
-        containers.forEach((elemento) => {
-            restaurarEstiloOriginal(elemento);
-        });
-
-        containersPorIframe.set(iframe, []);
-    }
-
-    /*
-     * Procura automaticamente containers acima do iframe
-     * que estejam menores que a altura necessária.
-     *
-     * Não depende de:
-     *
-     * .fundoBanner
-     * .supperBanner
-     * .propaganda
-     *
-     * ou qualquer classe específica do site cliente.
-     */
-    function ajustarContainers(iframe, alturaNecessaria) {
-        const alterados =
-            containersPorIframe.get(iframe) || [];
-
-        let elemento = iframe.parentElement;
-        let nivel = 0;
-
-        while (
-            elemento &&
-            elemento !== document.body &&
-            elemento !== document.documentElement &&
-            nivel < MAX_NIVEIS_CONTAINER
-        ) {
-            const estilo = window.getComputedStyle(elemento);
-            const rect = elemento.getBoundingClientRect();
-
-            const alturaAtual = rect.height;
+            this._ultimaAltura = null;
+            this._ultimoFormato = null;
 
             /*
-             * Há uma tolerância de 2px para evitar alterações
-             * causadas apenas por arredondamentos do navegador.
+             * Elementos externos que nosso widget precisou alterar.
+             *
+             * Map em vez de WeakMap porque precisamos percorrer
+             * depois para restaurar.
              */
-            const estaLimitando =
-                alturaAtual + 2 < alturaNecessaria;
-
-            if (estaLimitando) {
-                salvarEstiloOriginal(elemento);
-
-                /*
-                 * Em vez de simplesmente colocar height:auto,
-                 * garantimos fisicamente que exista espaço para
-                 * o banner.
-                 */
-                aplicarEstilo(
-                    elemento,
-                    'height',
-                    `${alturaNecessaria}px`
-                );
-
-                aplicarEstilo(
-                    elemento,
-                    'min-height',
-                    `${alturaNecessaria}px`
-                );
-
-                /*
-                 * Alguns sites usam max-height junto com height.
-                 * Isso também pode cortar o banner.
-                 */
-                const maxHeight = parseFloat(estilo.maxHeight);
-
-                if (
-                    Number.isFinite(maxHeight) &&
-                    maxHeight < alturaNecessaria
-                ) {
-                    aplicarEstilo(
-                        elemento,
-                        'max-height',
-                        'none'
-                    );
-                }
-
-                /*
-                 * Se o site estiver cortando o conteúdo,
-                 * liberamos somente nos containers que realmente
-                 * são menores que o banner.
-                 */
-                if (
-                    estilo.overflow === 'hidden' ||
-                    estilo.overflow === 'clip' ||
-                    estilo.overflowY === 'hidden' ||
-                    estilo.overflowY === 'clip'
-                ) {
-                    aplicarEstilo(
-                        elemento,
-                        'overflow',
-                        'visible'
-                    );
-                }
-
-                if (!alterados.includes(elemento)) {
-                    alterados.push(elemento);
-                }
-            }
-
-            elemento = elemento.parentElement;
-            nivel++;
+            this._containersAlterados = new Map();
         }
 
-        containersPorIframe.set(
-            iframe,
-            alterados
-        );
-    }
+        static get observedAttributes() {
+            return ['formato'];
+        }
 
-    function calcularDimensoes(iframe, dimensoes) {
-        const larguraDisponivel =
-            iframe.parentElement?.getBoundingClientRect().width ||
-            window.innerWidth;
+        connectedCallback() {
+            this._renderizar();
 
-        const limiteMobile =
-            dimensoes.limiteMobile ||
-            LIMITE_MOBILE;
-
-        const mobile =
-            Math.min(
-                window.innerWidth,
-                larguraDisponivel
-            ) <= limiteMobile;
-
-        return {
-            mobile,
-
-            largura:
-                mobile && dimensoes.larguraMobile
-                    ? dimensoes.larguraMobile
-                    : dimensoes.largura,
-
-            altura:
-                mobile && dimensoes.alturaMobile
-                    ? dimensoes.alturaMobile
-                    : dimensoes.altura
-        };
-    }
-
-    function ajustarIframe(iframe) {
-        const formato = obterFormato(iframe);
-        const dimensoes = formatos[formato];
-
-        iframe.dataset.previaFormato = formato;
-
-        iframe.scrolling = 'no';
-
-        aplicarEstilo(
-            iframe,
-            'display',
-            'block'
-        );
-
-        aplicarEstilo(
-            iframe,
-            'box-sizing',
-            'border-box'
-        );
-
-        aplicarEstilo(
-            iframe,
-            'margin-inline',
-            'auto'
-        );
-
-        aplicarEstilo(
-            iframe,
-            'padding',
-            '0'
-        );
-
-        aplicarEstilo(
-            iframe,
-            'border',
-            '0'
-        );
-
-        aplicarEstilo(
-            iframe,
-            'overflow',
-            'hidden'
-        );
-
-        let ultimaAltura = null;
-        let ultimaLargura = null;
-        let framePendente = null;
-
-        const atualizar = () => {
-            if (framePendente) {
-                cancelAnimationFrame(framePendente);
-            }
-
-            framePendente = requestAnimationFrame(() => {
-                framePendente = null;
-
-                const atual = calcularDimensoes(
-                    iframe,
-                    dimensoes
-                );
-
-                iframe.width = String(atual.largura);
-                iframe.height = String(atual.altura);
-
-                aplicarEstilo(
-                    iframe,
-                    'width',
-                    `min(${atual.largura}px, 100%)`
-                );
-
-                aplicarEstilo(
-                    iframe,
-                    'max-width',
-                    `${atual.largura}px`
-                );
-
-                aplicarEstilo(
-                    iframe,
-                    'height',
-                    `${atual.altura}px`
-                );
-
-                /*
-                 * Se mudou de desktop para mobile ou vice-versa,
-                 * primeiro restauramos os containers para o estado
-                 * original e recalculamos tudo.
-                 */
-                if (
-                    ultimaAltura !== null &&
-                    ultimaAltura !== atual.altura
-                ) {
-                    restaurarContainers(iframe);
-                }
-
-                ajustarContainers(
-                    iframe,
-                    atual.altura
-                );
-
-                ultimaAltura = atual.altura;
-                ultimaLargura = atual.largura;
-            });
-        };
-
-        atualizar();
-
-        /*
-         * ResizeObserver é melhor que depender apenas
-         * do resize da janela porque o container pode mudar
-         * sem o viewport mudar.
-         */
-        if ('ResizeObserver' in window) {
-            const observador = new ResizeObserver(atualizar);
-
-            observador.observe(
-                iframe.parentElement || iframe
+            window.addEventListener(
+                'resize',
+                this._resizeHandler,
+                { passive: true }
             );
 
-            iframe._previaResizeObserver = observador;
+            this._observarContainer();
+
+            this._agendarAjuste();
         }
 
-        window.addEventListener(
-            'resize',
-            atualizar,
-            { passive: true }
-        );
+        disconnectedCallback() {
+            window.removeEventListener(
+                'resize',
+                this._resizeHandler
+            );
 
-        iframe._previaAtualizar = atualizar;
-    }
-
-    function iniciar(raiz = document) {
-        if (
-            raiz.matches?.(SELETOR) &&
-            !raiz.dataset.previaAjustada
-        ) {
-            raiz.dataset.previaAjustada = 'true';
-            ajustarIframe(raiz);
-        }
-
-        raiz.querySelectorAll?.(SELETOR).forEach((iframe) => {
-            if (iframe.dataset.previaAjustada) return;
-
-            iframe.dataset.previaAjustada = 'true';
-
-            ajustarIframe(iframe);
-        });
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener(
-            'DOMContentLoaded',
-            () => iniciar(),
-            { once: true }
-        );
-    } else {
-        iniciar();
-    }
-
-    /*
-     * Continua funcionando caso o iframe seja inserido depois
-     * por Ad Manager, JavaScript, AJAX etc.
-     */
-    if ('MutationObserver' in window) {
-        new MutationObserver((mutacoes) => {
-            mutacoes.forEach((mutacao) => {
-                mutacao.addedNodes.forEach((no) => {
-                    if (
-                        no.nodeType ===
-                        Node.ELEMENT_NODE
-                    ) {
-                        iniciar(no);
-                    }
-                });
-            });
-        }).observe(
-            document.documentElement,
-            {
-                childList: true,
-                subtree: true
+            if (this._resizeObserver) {
+                this._resizeObserver.disconnect();
+                this._resizeObserver = null;
             }
-        );
+
+            if (this._frame) {
+                cancelAnimationFrame(this._frame);
+                this._frame = null;
+            }
+
+            this._restaurarContainers();
+        }
+
+        attributeChangedCallback(nome, antigo, novo) {
+            if (
+                nome === 'formato' &&
+                antigo !== novo &&
+                this.isConnected
+            ) {
+                this._restaurarContainers();
+
+                this._ultimaAltura = null;
+                this._ultimoFormato = null;
+
+                this._renderizar();
+                this._observarContainer();
+                this._agendarAjuste();
+            }
+        }
+
+        _obterFormato() {
+            const formato =
+                this.getAttribute('formato') || 'index';
+
+            return Object.hasOwn(FORMATOS, formato)
+                ? formato
+                : 'index';
+        }
+
+        _obterUrl(formato) {
+            if (formato === 'index') {
+                return `${BASE_URL}/index.html`;
+            }
+
+            return `${BASE_URL}/${formato}.html`;
+        }
+
+        _renderizar() {
+            const formato = this._obterFormato();
+            const src = this._obterUrl(formato);
+
+            this.shadowRoot.innerHTML = `
+                <style>
+                    :host {
+                        display: block;
+                        box-sizing: border-box;
+                        margin-left: auto;
+                        margin-right: auto;
+                        padding: 0;
+                        border: 0;
+                    }
+
+                    .previa-wrapper {
+                        display: block;
+                        width: 100%;
+                        height: 100%;
+                        margin: 0 auto;
+                        padding: 0;
+                        border: 0;
+                        overflow: hidden;
+                    }
+
+                    iframe {
+                        display: block;
+                        width: 100%;
+                        height: 100%;
+                        margin: 0;
+                        padding: 0;
+                        border: 0;
+                        overflow: hidden;
+                    }
+                </style>
+
+                <div class="previa-wrapper">
+                    <iframe
+                        src="${src}"
+                        title="Prévia adaptativa das Eleições 2026"
+                        loading="lazy"
+                        scrolling="no"
+                    ></iframe>
+                </div>
+            `;
+
+            this._iframe =
+                this.shadowRoot.querySelector('iframe');
+
+            this._ultimoFormato = formato;
+        }
+
+        _observarContainer() {
+            if (this._resizeObserver) {
+                this._resizeObserver.disconnect();
+            }
+
+            if (!('ResizeObserver' in window)) {
+                return;
+            }
+
+            this._resizeObserver =
+                new ResizeObserver(() => {
+                    this._agendarAjuste();
+                });
+
+            if (this.parentElement) {
+                this._resizeObserver.observe(
+                    this.parentElement
+                );
+            }
+        }
+
+        _agendarAjuste() {
+            if (this._frame) {
+                cancelAnimationFrame(this._frame);
+            }
+
+            this._frame = requestAnimationFrame(() => {
+                this._frame = null;
+                this._ajustar();
+            });
+        }
+
+        _calcularDimensoes() {
+            const formato = this._obterFormato();
+            const config = FORMATOS[formato];
+
+            const larguraViewport =
+                window.innerWidth;
+
+            const larguraContainer =
+                this.parentElement
+                    ?.getBoundingClientRect()
+                    .width || larguraViewport;
+
+            /*
+             * Consideramos mobile tanto pela viewport quanto
+             * pelo espaço real onde o widget foi colocado.
+             */
+            const larguraReferencia = Math.min(
+                larguraViewport,
+                larguraContainer
+            );
+
+            const limite =
+                config.limiteMobile ||
+                LIMITE_MOBILE;
+
+            const mobile =
+                larguraReferencia <= limite;
+
+            let largura = config.largura;
+            let altura = config.altura;
+            let larguraFluida = false;
+
+            if (mobile) {
+                if (
+                    config.larguraMobile ===
+                    'disponivel'
+                ) {
+                    largura =
+                        larguraContainer;
+
+                    larguraFluida = true;
+                } else if (
+                    Number.isFinite(
+                        config.larguraMobile
+                    )
+                ) {
+                    largura =
+                        config.larguraMobile;
+                }
+
+                if (
+                    Number.isFinite(
+                        config.alturaMobile
+                    )
+                ) {
+                    altura =
+                        config.alturaMobile;
+                }
+            }
+
+            /*
+             * Mesmo formatos desktop nunca podem ultrapassar
+             * fisicamente o container onde foram colocados.
+             */
+            largura = Math.min(
+                largura,
+                larguraContainer
+            );
+
+            return {
+                formato,
+                mobile,
+                largura,
+                altura,
+                larguraContainer,
+                larguraFluida
+            };
+        }
+
+        _ajustar() {
+            if (
+                !this.isConnected ||
+                !this._iframe
+            ) {
+                return;
+            }
+
+            const dimensoes =
+                this._calcularDimensoes();
+
+            /*
+             * Caso a altura tenha mudado, por exemplo:
+             *
+             * 970x250x100:
+             * desktop = 250
+             * mobile  = 100
+             *
+             * restauramos primeiro o CSS original do portal.
+             */
+            if (
+                this._ultimaAltura !== null &&
+                this._ultimaAltura !==
+                    dimensoes.altura
+            ) {
+                this._restaurarContainers();
+            }
+
+            this._aplicarDimensoes(dimensoes);
+
+            this._ajustarContainers(
+                dimensoes.altura
+            );
+
+            this._ultimaAltura =
+                dimensoes.altura;
+        }
+
+        _aplicarDimensoes(dimensoes) {
+            const largura =
+                Math.max(
+                    1,
+                    Math.round(dimensoes.largura)
+                );
+
+            const altura =
+                Math.max(
+                    1,
+                    Math.round(dimensoes.altura)
+                );
+
+            /*
+             * HOST
+             */
+            if (dimensoes.larguraFluida) {
+                this.style.setProperty(
+                    'width',
+                    '100%',
+                    'important'
+                );
+
+                this.style.setProperty(
+                    'max-width',
+                    '100%',
+                    'important'
+                );
+            } else {
+                this.style.setProperty(
+                    'width',
+                    `min(${largura}px, 100%)`,
+                    'important'
+                );
+
+                this.style.setProperty(
+                    'max-width',
+                    `${largura}px`,
+                    'important'
+                );
+            }
+
+            this.style.setProperty(
+                'height',
+                `${altura}px`,
+                'important'
+            );
+
+            this.style.setProperty(
+                'min-height',
+                `${altura}px`,
+                'important'
+            );
+
+            this.style.setProperty(
+                'box-sizing',
+                'border-box',
+                'important'
+            );
+
+            this.style.setProperty(
+                'margin-inline',
+                'auto',
+                'important'
+            );
+
+            /*
+             * IFRAME
+             */
+            this._iframe.width =
+                String(largura);
+
+            this._iframe.height =
+                String(altura);
+
+            this._iframe.style.setProperty(
+                'width',
+                '100%',
+                'important'
+            );
+
+            this._iframe.style.setProperty(
+                'height',
+                `${altura}px`,
+                'important'
+            );
+
+            this._iframe.style.setProperty(
+                'max-width',
+                '100%',
+                'important'
+            );
+        }
+
+        _salvarContainer(elemento) {
+            if (
+                this._containersAlterados.has(
+                    elemento
+                )
+            ) {
+                return;
+            }
+
+            const propriedades = [
+                'height',
+                'min-height',
+                'max-height',
+                'overflow',
+                'overflow-x',
+                'overflow-y'
+            ];
+
+            const estado = {};
+
+            propriedades.forEach(
+                (propriedade) => {
+                    estado[propriedade] = {
+                        valor:
+                            elemento.style
+                                .getPropertyValue(
+                                    propriedade
+                                ),
+
+                        prioridade:
+                            elemento.style
+                                .getPropertyPriority(
+                                    propriedade
+                                )
+                    };
+                }
+            );
+
+            this._containersAlterados.set(
+                elemento,
+                estado
+            );
+        }
+
+        _restaurarContainers() {
+            this._containersAlterados.forEach(
+                (estado, elemento) => {
+                    Object.entries(estado).forEach(
+                        ([
+                            propriedade,
+                            configuracao
+                        ]) => {
+                            if (
+                                configuracao.valor
+                            ) {
+                                elemento.style
+                                    .setProperty(
+                                        propriedade,
+                                        configuracao.valor,
+                                        configuracao.prioridade
+                                    );
+                            } else {
+                                elemento.style
+                                    .removeProperty(
+                                        propriedade
+                                    );
+                            }
+                        }
+                    );
+                }
+            );
+
+            this._containersAlterados.clear();
+        }
+
+        _ajustarContainers(
+            alturaNecessaria
+        ) {
+            let elemento =
+                this.parentElement;
+
+            let nivel = 0;
+
+            while (
+                elemento &&
+                elemento !== document.body &&
+                elemento !==
+                    document.documentElement &&
+                nivel <
+                    MAX_NIVEIS_CONTAINER
+            ) {
+                const rect =
+                    elemento
+                        .getBoundingClientRect();
+
+                const estilo =
+                    window.getComputedStyle(
+                        elemento
+                    );
+
+                const alturaAtual =
+                    rect.height;
+
+                /*
+                 * Só toca em containers que realmente
+                 * estejam menores que nosso anúncio.
+                 */
+                if (
+                    alturaAtual + 2 <
+                    alturaNecessaria
+                ) {
+                    this._salvarContainer(
+                        elemento
+                    );
+
+                    /*
+                     * Esse é o equivalente genérico ao:
+                     *
+                     * .fundoBanner {
+                     *     height:250px !important
+                     * }
+                     *
+                     * Só que sem saber o nome da classe.
+                     */
+                    elemento.style.setProperty(
+                        'height',
+                        `${alturaNecessaria}px`,
+                        'important'
+                    );
+
+                    elemento.style.setProperty(
+                        'min-height',
+                        `${alturaNecessaria}px`,
+                        'important'
+                    );
+
+                    /*
+                     * Remove possíveis travas extras.
+                     */
+                    const maxHeight =
+                        parseFloat(
+                            estilo.maxHeight
+                        );
+
+                    if (
+                        Number.isFinite(
+                            maxHeight
+                        ) &&
+                        maxHeight <
+                            alturaNecessaria
+                    ) {
+                        elemento.style
+                            .setProperty(
+                                'max-height',
+                                'none',
+                                'important'
+                            );
+                    }
+
+                    const overflowBloqueado =
+                        estilo.overflow ===
+                            'hidden' ||
+                        estilo.overflow ===
+                            'clip' ||
+                        estilo.overflowY ===
+                            'hidden' ||
+                        estilo.overflowY ===
+                            'clip';
+
+                    if (overflowBloqueado) {
+                        elemento.style
+                            .setProperty(
+                                'overflow',
+                                'visible',
+                                'important'
+                            );
+                    }
+                }
+
+                elemento =
+                    elemento.parentElement;
+
+                nivel++;
+            }
+        }
     }
+
+    customElements.define(
+        TAG,
+        PreviaEleitoral
+    );
 })();
