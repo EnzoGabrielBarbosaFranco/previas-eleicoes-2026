@@ -59,6 +59,10 @@
         }
     };
 
+    /*
+     * Evita registrar o componente novamente caso o embed.js
+     * seja incluído mais de uma vez na mesma página.
+     */
     if (customElements.get(TAG)) {
         return;
     }
@@ -67,23 +71,23 @@
         constructor() {
             super();
 
-            this.attachShadow({ mode: 'open' });
-
             this._iframe = null;
             this._resizeObserver = null;
-            this._resizeHandler = () => this._agendarAjuste();
             this._frame = null;
 
+            this._ultimaLargura = null;
             this._ultimaAltura = null;
-            this._ultimoFormato = null;
+            this._ultimoMobile = null;
 
             /*
-             * Elementos externos que nosso widget precisou alterar.
-             *
-             * Map em vez de WeakMap porque precisamos percorrer
-             * depois para restaurar.
+             * Containers externos do portal que precisaram
+             * ser alterados pelo widget.
              */
             this._containersAlterados = new Map();
+
+            this._resizeHandler = () => {
+                this._agendarAjuste();
+            };
         }
 
         static get observedAttributes() {
@@ -91,17 +95,39 @@
         }
 
         connectedCallback() {
-            this._renderizar();
+            try {
+                if (!this.shadowRoot) {
+                    this.attachShadow({
+                        mode: 'open'
+                    });
+                }
 
-            window.addEventListener(
-                'resize',
-                this._resizeHandler,
-                { passive: true }
-            );
+                this._renderizar();
 
-            this._observarContainer();
+                window.addEventListener(
+                    'resize',
+                    this._resizeHandler,
+                    {
+                        passive: true
+                    }
+                );
 
-            this._agendarAjuste();
+                this._observarContainer();
+
+                /*
+                 * Ajusta imediatamente e novamente no frame
+                 * seguinte para pegar containers que ainda
+                 * estejam sendo montados pelo portal.
+                 */
+                this._ajustar();
+                this._agendarAjuste();
+
+            } catch (erro) {
+                console.error(
+                    '[Prévia Eleitoral] Erro ao iniciar:',
+                    erro
+                );
+            }
         }
 
         disconnectedCallback() {
@@ -116,67 +142,92 @@
             }
 
             if (this._frame) {
-                cancelAnimationFrame(this._frame);
+                cancelAnimationFrame(
+                    this._frame
+                );
+
                 this._frame = null;
             }
 
             this._restaurarContainers();
         }
 
-        attributeChangedCallback(nome, antigo, novo) {
+        attributeChangedCallback(
+            nome,
+            valorAntigo,
+            valorNovo
+        ) {
             if (
-                nome === 'formato' &&
-                antigo !== novo &&
-                this.isConnected
+                nome !== 'formato' ||
+                valorAntigo === valorNovo ||
+                !this.isConnected
             ) {
-                this._restaurarContainers();
-
-                this._ultimaAltura = null;
-                this._ultimoFormato = null;
-
-                this._renderizar();
-                this._observarContainer();
-                this._agendarAjuste();
+                return;
             }
+
+            this._restaurarContainers();
+
+            this._ultimaLargura = null;
+            this._ultimaAltura = null;
+            this._ultimoMobile = null;
+
+            this._renderizar();
+            this._observarContainer();
+            this._agendarAjuste();
         }
 
         _obterFormato() {
             const formato =
-                this.getAttribute('formato') || 'index';
+                this.getAttribute('formato') ||
+                'index';
 
-            return Object.hasOwn(FORMATOS, formato)
-                ? formato
-                : 'index';
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    FORMATOS,
+                    formato
+                )
+            ) {
+                return formato;
+            }
+
+            console.warn(
+                `[Prévia Eleitoral] Formato "${formato}" não encontrado. Usando "index".`
+            );
+
+            return 'index';
         }
 
         _obterUrl(formato) {
-            if (formato === 'index') {
-                return `${BASE_URL}/index.html`;
-            }
-
             return `${BASE_URL}/${formato}.html`;
         }
 
         _renderizar() {
-            const formato = this._obterFormato();
-            const src = this._obterUrl(formato);
+            if (!this.shadowRoot) {
+                return;
+            }
+
+            const formato =
+                this._obterFormato();
+
+            const src =
+                this._obterUrl(formato);
 
             this.shadowRoot.innerHTML = `
                 <style>
                     :host {
-                        display: block;
-                        box-sizing: border-box;
-                        margin-left: auto;
-                        margin-right: auto;
-                        padding: 0;
-                        border: 0;
+                        display: block !important;
+                        box-sizing: border-box !important;
+                        margin: 0 auto !important;
+                        padding: 0 !important;
+                        border: 0 !important;
                     }
 
                     .previa-wrapper {
                         display: block;
                         width: 100%;
                         height: 100%;
-                        margin: 0 auto;
+                        box-sizing: border-box;
+                        margin: 0;
                         padding: 0;
                         border: 0;
                         overflow: hidden;
@@ -186,6 +237,7 @@
                         display: block;
                         width: 100%;
                         height: 100%;
+                        box-sizing: border-box;
                         margin: 0;
                         padding: 0;
                         border: 0;
@@ -204,177 +256,166 @@
             `;
 
             this._iframe =
-                this.shadowRoot.querySelector('iframe');
-
-            this._ultimoFormato = formato;
-        }
-
-        _observarContainer() {
-            if (this._resizeObserver) {
-                this._resizeObserver.disconnect();
-            }
-
-            if (!('ResizeObserver' in window)) {
-                return;
-            }
-
-            this._resizeObserver =
-                new ResizeObserver(() => {
-                    this._agendarAjuste();
-                });
-
-            if (this.parentElement) {
-                this._resizeObserver.observe(
-                    this.parentElement
+                this.shadowRoot.querySelector(
+                    'iframe'
                 );
-            }
         }
 
-        _agendarAjuste() {
-            if (this._frame) {
-                cancelAnimationFrame(this._frame);
-            }
-
-            this._frame = requestAnimationFrame(() => {
-                this._frame = null;
-                this._ajustar();
-            });
-        }
-
+        /*
+         * O ponto mais importante:
+         *
+         * DESKTOP / MOBILE é definido pela viewport REAL
+         * do site, e não pela largura atual do container.
+         *
+         * Isso impede:
+         *
+         * container 300px em desktop
+         * -> iframe 300px
+         * -> CSS interno pensa que é mobile
+         */
         _calcularDimensoes() {
-            const formato = this._obterFormato();
-            const config = FORMATOS[formato];
+            const formato =
+                this._obterFormato();
+
+            const config =
+                FORMATOS[formato];
 
             const larguraViewport =
                 window.innerWidth;
 
-            const larguraContainer =
+            const larguraPai =
                 this.parentElement
                     ?.getBoundingClientRect()
-                    .width || larguraViewport;
+                    .width;
 
-            /*
-             * Consideramos mobile tanto pela viewport quanto
-             * pelo espaço real onde o widget foi colocado.
-             */
-            const larguraReferencia = Math.min(
-                larguraViewport,
-                larguraContainer
-            );
+            const larguraDisponivel =
+                larguraPai &&
+                larguraPai > 0
+                    ? larguraPai
+                    : larguraViewport;
 
-            const limite =
+            const limiteMobile =
                 config.limiteMobile ||
                 LIMITE_MOBILE;
 
+            /*
+             * NÃO usar larguraDisponivel aqui.
+             */
             const mobile =
-                larguraReferencia <= limite;
+                larguraViewport <=
+                limiteMobile;
 
-            let largura = config.largura;
-            let altura = config.altura;
+            let largura;
+            let altura;
             let larguraFluida = false;
 
             if (mobile) {
+                /*
+                 * MOBILE
+                 */
+                altura =
+                    Number.isFinite(
+                        config.alturaMobile
+                    )
+                        ? config.alturaMobile
+                        : config.altura;
+
                 if (
                     config.larguraMobile ===
                     'disponivel'
                 ) {
                     largura =
-                        larguraContainer;
+                        larguraDisponivel;
 
                     larguraFluida = true;
+
                 } else if (
                     Number.isFinite(
                         config.larguraMobile
                     )
                 ) {
-                    largura =
-                        config.larguraMobile;
+                    largura = Math.min(
+                        config.larguraMobile,
+                        larguraDisponivel
+                    );
+
+                } else {
+                    /*
+                     * Exemplo:
+                     * 970x250 não possui uma versão
+                     * mobile diferente.
+                     *
+                     * Mantém altura 250 e apenas encaixa
+                     * horizontalmente na tela.
+                     */
+                    largura = Math.min(
+                        config.largura,
+                        larguraDisponivel
+                    );
                 }
 
-                if (
-                    Number.isFinite(
-                        config.alturaMobile
-                    )
-                ) {
-                    altura =
-                        config.alturaMobile;
-                }
+            } else {
+                /*
+                 * DESKTOP
+                 *
+                 * Não usamos a largura do container
+                 * para transformar o anúncio em mobile.
+                 *
+                 * Só impedimos que ultrapasse fisicamente
+                 * a própria viewport.
+                 */
+                largura = Math.min(
+                    config.largura,
+                    larguraViewport
+                );
+
+                altura =
+                    config.altura;
             }
-
-            /*
-             * Mesmo formatos desktop nunca podem ultrapassar
-             * fisicamente o container onde foram colocados.
-             */
-            largura = Math.min(
-                largura,
-                larguraContainer
-            );
 
             return {
                 formato,
+                config,
                 mobile,
                 largura,
                 altura,
-                larguraContainer,
+                larguraDisponivel,
                 larguraFluida
             };
         }
 
-        _ajustar() {
-            if (
-                !this.isConnected ||
-                !this._iframe
-            ) {
+        _aplicarDimensoes(dimensoes) {
+            if (!this._iframe) {
                 return;
             }
 
-            const dimensoes =
-                this._calcularDimensoes();
-
-            /*
-             * Caso a altura tenha mudado, por exemplo:
-             *
-             * 970x250x100:
-             * desktop = 250
-             * mobile  = 100
-             *
-             * restauramos primeiro o CSS original do portal.
-             */
-            if (
-                this._ultimaAltura !== null &&
-                this._ultimaAltura !==
-                    dimensoes.altura
-            ) {
-                this._restaurarContainers();
-            }
-
-            this._aplicarDimensoes(dimensoes);
-
-            this._ajustarContainers(
-                dimensoes.altura
+            const largura = Math.max(
+                1,
+                Math.round(
+                    dimensoes.largura
+                )
             );
 
-            this._ultimaAltura =
-                dimensoes.altura;
-        }
-
-        _aplicarDimensoes(dimensoes) {
-            const largura =
-                Math.max(
-                    1,
-                    Math.round(dimensoes.largura)
-                );
-
-            const altura =
-                Math.max(
-                    1,
-                    Math.round(dimensoes.altura)
-                );
+            const altura = Math.max(
+                1,
+                Math.round(
+                    dimensoes.altura
+                )
+            );
 
             /*
-             * HOST
+             * HOST DO COMPONENTE
              */
-            if (dimensoes.larguraFluida) {
+            if (
+                dimensoes.mobile &&
+                dimensoes.larguraFluida
+            ) {
+                /*
+                 * Exemplos:
+                 *
+                 * 970x250x100 mobile
+                 * 1260x100 mobile
+                 */
                 this.style.setProperty(
                     'width',
                     '100%',
@@ -386,18 +427,36 @@
                     '100%',
                     'important'
                 );
+
             } else {
+                /*
+                 * IMPORTANTE:
+                 *
+                 * No desktop NÃO colocamos
+                 * max-width:100%.
+                 *
+                 * Senão um container de 300px faria
+                 * o iframe de 970px nascer com 300px.
+                 */
                 this.style.setProperty(
                     'width',
-                    `min(${largura}px, 100%)`,
-                    'important'
-                );
-
-                this.style.setProperty(
-                    'max-width',
                     `${largura}px`,
                     'important'
                 );
+
+                if (dimensoes.mobile) {
+                    this.style.setProperty(
+                        'max-width',
+                        '100%',
+                        'important'
+                    );
+                } else {
+                    this.style.setProperty(
+                        'max-width',
+                        'none',
+                        'important'
+                    );
+                }
             }
 
             this.style.setProperty(
@@ -425,7 +484,7 @@
             );
 
             /*
-             * IFRAME
+             * IFRAME INTERNO
              */
             this._iframe.width =
                 String(largura);
@@ -447,11 +506,116 @@
 
             this._iframe.style.setProperty(
                 'max-width',
-                '100%',
+                'none',
+                'important'
+            );
+
+            this._iframe.style.setProperty(
+                'border',
+                '0',
+                'important'
+            );
+
+            this._iframe.style.setProperty(
+                'margin',
+                '0',
                 'important'
             );
         }
 
+        _ajustar() {
+            if (
+                !this.isConnected ||
+                !this._iframe
+            ) {
+                return;
+            }
+
+            const dimensoes =
+                this._calcularDimensoes();
+
+            /*
+             * Se houve troca desktop/mobile ou mudança
+             * real de tamanho, restaura primeiro o portal
+             * e calcula tudo novamente.
+             */
+            const mudou =
+                this._ultimaAltura !== null &&
+                (
+                    this._ultimaAltura !==
+                        dimensoes.altura ||
+                    this._ultimaLargura !==
+                        dimensoes.largura ||
+                    this._ultimoMobile !==
+                        dimensoes.mobile
+                );
+
+            if (mudou) {
+                this._restaurarContainers();
+            }
+
+            this._aplicarDimensoes(
+                dimensoes
+            );
+
+            this._ajustarContainers(
+                dimensoes.largura,
+                dimensoes.altura,
+                dimensoes.mobile
+            );
+
+            this._ultimaLargura =
+                dimensoes.largura;
+
+            this._ultimaAltura =
+                dimensoes.altura;
+
+            this._ultimoMobile =
+                dimensoes.mobile;
+        }
+
+        _agendarAjuste() {
+            if (this._frame) {
+                cancelAnimationFrame(
+                    this._frame
+                );
+            }
+
+            this._frame =
+                requestAnimationFrame(() => {
+                    this._frame = null;
+                    this._ajustar();
+                });
+        }
+
+        _observarContainer() {
+            if (this._resizeObserver) {
+                this._resizeObserver.disconnect();
+                this._resizeObserver = null;
+            }
+
+            if (
+                !('ResizeObserver' in window)
+            ) {
+                return;
+            }
+
+            this._resizeObserver =
+                new ResizeObserver(() => {
+                    this._agendarAjuste();
+                });
+
+            if (this.parentElement) {
+                this._resizeObserver.observe(
+                    this.parentElement
+                );
+            }
+        }
+
+        /*
+         * Salva os estilos INLINE originais do cliente
+         * antes de modificar qualquer container.
+         */
         _salvarContainer(elemento) {
             if (
                 this._containersAlterados.has(
@@ -462,9 +626,14 @@
             }
 
             const propriedades = [
+                'width',
+                'min-width',
+                'max-width',
+
                 'height',
                 'min-height',
                 'max-height',
+
                 'overflow',
                 'overflow-x',
                 'overflow-y'
@@ -499,7 +668,9 @@
         _restaurarContainers() {
             this._containersAlterados.forEach(
                 (estado, elemento) => {
-                    Object.entries(estado).forEach(
+                    Object.entries(
+                        estado
+                    ).forEach(
                         ([
                             propriedade,
                             configuracao
@@ -527,8 +698,19 @@
             this._containersAlterados.clear();
         }
 
+        /*
+         * Faz o equivalente genérico a:
+         *
+         * .fundoBanner
+         * .supperBanner
+         * .propaganda
+         *
+         * sem conhecer nenhuma classe do portal.
+         */
         _ajustarContainers(
-            alturaNecessaria
+            larguraNecessaria,
+            alturaNecessaria,
+            mobile
         ) {
             let elemento =
                 this.parentElement;
@@ -537,7 +719,8 @@
 
             while (
                 elemento &&
-                elemento !== document.body &&
+                elemento !==
+                    document.body &&
                 elemento !==
                     document.documentElement &&
                 nivel <
@@ -552,30 +735,25 @@
                         elemento
                     );
 
-                const alturaAtual =
-                    rect.height;
+                const precisaAltura =
+                    rect.height + 2 <
+                    alturaNecessaria;
 
                 /*
-                 * Só toca em containers que realmente
-                 * estejam menores que nosso anúncio.
+                 * ALTURA
+                 *
+                 * Esse é o principal comportamento
+                 * que você precisava:
+                 *
+                 * container 100px
+                 * banner 250px
+                 * -> container passa para 250px
                  */
-                if (
-                    alturaAtual + 2 <
-                    alturaNecessaria
-                ) {
+                if (precisaAltura) {
                     this._salvarContainer(
                         elemento
                     );
 
-                    /*
-                     * Esse é o equivalente genérico ao:
-                     *
-                     * .fundoBanner {
-                     *     height:250px !important
-                     * }
-                     *
-                     * Só que sem saber o nome da classe.
-                     */
                     elemento.style.setProperty(
                         'height',
                         `${alturaNecessaria}px`,
@@ -588,9 +766,6 @@
                         'important'
                     );
 
-                    /*
-                     * Remove possíveis travas extras.
-                     */
                     const maxHeight =
                         parseFloat(
                             estilo.maxHeight
@@ -603,32 +778,137 @@
                         maxHeight <
                             alturaNecessaria
                     ) {
-                        elemento.style
-                            .setProperty(
-                                'max-height',
-                                'none',
-                                'important'
-                            );
+                        elemento.style.setProperty(
+                            'max-height',
+                            'none',
+                            'important'
+                        );
                     }
+                }
 
-                    const overflowBloqueado =
-                        estilo.overflow ===
-                            'hidden' ||
-                        estilo.overflow ===
-                            'clip' ||
-                        estilo.overflowY ===
-                            'hidden' ||
-                        estilo.overflowY ===
-                            'clip';
+                /*
+                 * LARGURA
+                 *
+                 * Somente desktop.
+                 *
+                 * E somente se houver espaço no pai
+                 * para suportar o banner.
+                 *
+                 * Isso evita aumentar indiscriminadamente
+                 * qualquer coluna do site.
+                 */
+                if (!mobile) {
+                    const pai =
+                        elemento.parentElement;
 
-                    if (overflowBloqueado) {
-                        elemento.style
-                            .setProperty(
-                                'overflow',
-                                'visible',
-                                'important'
+                    const larguraPai =
+                        pai &&
+                        pai !== document.body &&
+                        pai !==
+                            document.documentElement
+                            ? pai
+                                .getBoundingClientRect()
+                                .width
+                            : window.innerWidth;
+
+                    const podeExpandir =
+                        larguraPai + 2 >=
+                        larguraNecessaria;
+
+                    const precisaLargura =
+                        rect.width + 2 <
+                        larguraNecessaria;
+
+                    if (
+                        precisaLargura &&
+                        podeExpandir
+                    ) {
+                        this._salvarContainer(
+                            elemento
+                        );
+
+                        elemento.style.setProperty(
+                            'width',
+                            `${larguraNecessaria}px`,
+                            'important'
+                        );
+
+                        elemento.style.setProperty(
+                            'min-width',
+                            `${larguraNecessaria}px`,
+                            'important'
+                        );
+
+                        const maxWidth =
+                            parseFloat(
+                                estilo.maxWidth
                             );
+
+                        if (
+                            Number.isFinite(
+                                maxWidth
+                            ) &&
+                            maxWidth <
+                                larguraNecessaria
+                        ) {
+                            elemento.style
+                                .setProperty(
+                                    'max-width',
+                                    'none',
+                                    'important'
+                                );
+                        }
                     }
+                }
+
+                /*
+                 * Se o container está cortando o
+                 * conteúdo que precisa crescer,
+                 * libera o overflow.
+                 */
+                const overflowBloqueado =
+                    estilo.overflow ===
+                        'hidden' ||
+                    estilo.overflow ===
+                        'clip' ||
+                    estilo.overflowX ===
+                        'hidden' ||
+                    estilo.overflowX ===
+                        'clip' ||
+                    estilo.overflowY ===
+                        'hidden' ||
+                    estilo.overflowY ===
+                        'clip';
+
+                if (
+                    overflowBloqueado &&
+                    (
+                        precisaAltura ||
+                        rect.width + 2 <
+                            larguraNecessaria
+                    )
+                ) {
+                    this._salvarContainer(
+                        elemento
+                    );
+
+                    elemento.style.setProperty(
+                        'overflow',
+                        'visible',
+                        'important'
+                    );
+
+                    elemento.style.setProperty(
+                        'overflow-x',
+                        'visible',
+                        'important'
+                    );
+
+                    elemento.style.setProperty(
+                        'overflow-y',
+                        'visible',
+                        'important'
+                    );
                 }
 
                 elemento =
