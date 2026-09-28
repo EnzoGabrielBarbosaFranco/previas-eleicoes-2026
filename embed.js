@@ -41,16 +41,17 @@
             larguraMobile: 'disponivel',
             alturaMobile: 100,
 
-            larguraRestrita: 'disponivel',
+            /*
+             * Esse formato possui uma versão real
+             * preparada para trabalhar em 100px.
+             */
             alturaRestrita: 100,
-
-            toleranciaRestrita: 20
+            larguraRestrita: 'disponivel'
         },
 
         '1260x100': {
             largura: 1260,
             altura: 100,
-
             larguraMobile: 'disponivel',
             alturaMobile: 100
         },
@@ -80,11 +81,13 @@
 
             this._iframe = null;
             this._resizeObserver = null;
+            this._resizeTimer = null;
             this._frame = null;
-            this._tokenAjuste = 0;
+
+            this._ultimoEstado = null;
 
             this._resizeHandler = () => {
-                this._agendarAjuste();
+                this._agendarAjuste(80);
             };
         }
 
@@ -93,23 +96,31 @@
         }
 
         connectedCallback() {
-            if (!this.shadowRoot) {
-                this.attachShadow({
-                    mode: 'open'
-                });
+            try {
+                if (!this.shadowRoot) {
+                    this.attachShadow({
+                        mode: 'open'
+                    });
+                }
+
+                this._renderizar();
+
+                window.addEventListener(
+                    'resize',
+                    this._resizeHandler,
+                    { passive: true }
+                );
+
+                this._observarContainers();
+
+                this._agendarAjuste();
+
+            } catch (erro) {
+                console.error(
+                    '[Prévia Eleitoral] Erro ao iniciar:',
+                    erro
+                );
             }
-
-            this._renderizar();
-
-            window.addEventListener(
-                'resize',
-                this._resizeHandler,
-                { passive: true }
-            );
-
-            this._observarContainers();
-
-            this._agendarAjuste();
         }
 
         disconnectedCallback() {
@@ -123,6 +134,14 @@
                 this._resizeObserver = null;
             }
 
+            if (this._resizeTimer) {
+                clearTimeout(
+                    this._resizeTimer
+                );
+
+                this._resizeTimer = null;
+            }
+
             if (this._frame) {
                 cancelAnimationFrame(
                     this._frame
@@ -130,8 +149,6 @@
 
                 this._frame = null;
             }
-
-            this._tokenAjuste++;
         }
 
         attributeChangedCallback(
@@ -146,6 +163,8 @@
             ) {
                 return;
             }
+
+            this._ultimoEstado = null;
 
             this._renderizar();
             this._observarContainers();
@@ -166,6 +185,10 @@
                 return formato;
             }
 
+            console.warn(
+                `[Prévia Eleitoral] Formato "${formato}" não encontrado. Usando "index".`
+            );
+
             return 'index';
         }
 
@@ -174,8 +197,15 @@
         }
 
         _renderizar() {
+            if (!this.shadowRoot) {
+                return;
+            }
+
             const formato =
                 this._obterFormato();
+
+            const src =
+                this._obterUrl(formato);
 
             this.shadowRoot.innerHTML = `
                 <style>
@@ -213,7 +243,7 @@
 
                 <div class="previa-wrapper">
                     <iframe
-                        src="${this._obterUrl(formato)}"
+                        src="${src}"
                         title="Prévia adaptativa das Eleições 2026"
                         loading="lazy"
                         scrolling="no"
@@ -228,7 +258,7 @@
         }
 
         _obterAncestrais() {
-            const ancestrais = [];
+            const elementos = [];
 
             let elemento =
                 this.parentElement;
@@ -241,7 +271,7 @@
                 elemento !== document.documentElement &&
                 nivel < MAX_NIVEIS
             ) {
-                ancestrais.push(elemento);
+                elementos.push(elemento);
 
                 elemento =
                     elemento.parentElement;
@@ -249,26 +279,260 @@
                 nivel++;
             }
 
-            return ancestrais;
+            return elementos;
         }
 
         /*
-         * Primeiro calculamos APENAS o tamanho natural
-         * do banner.
+         * Tenta descobrir se o elemento possui
+         * height explicitamente definido pelo CSS.
          *
-         * Não olhamos o container ainda.
+         * Exemplo:
+         *
+         * @media (max-width:1050px) {
+         *     .fundoBanner {
+         *         height:100px;
+         *     }
+         * }
+         *
+         * Não precisamos saber que a classe se chama
+         * fundoBanner.
          */
-        _calcularTamanhoBase() {
+        _obterAlturaCSS(elemento) {
+            if (!elemento) {
+                return null;
+            }
+
+            /*
+             * Chrome / Edge modernos.
+             *
+             * Essa é a melhor maneira porque conseguimos
+             * diferenciar:
+             *
+             * height:auto
+             *
+             * de:
+             *
+             * height:100px
+             */
+            if (
+                typeof elemento.computedStyleMap ===
+                'function'
+            ) {
+                try {
+                    const mapa =
+                        elemento.computedStyleMap();
+
+                    const height =
+                        mapa.get('height');
+
+                    if (height) {
+                        const texto =
+                            String(height)
+                                .trim()
+                                .toLowerCase();
+
+                        if (
+                            texto &&
+                            texto !== 'auto' &&
+                            texto !== 'none'
+                        ) {
+                            if (
+                                typeof height.value ===
+                                    'number' &&
+                                height.unit === 'px'
+                            ) {
+                                return height.value;
+                            }
+
+                            const numero =
+                                parseFloat(texto);
+
+                            if (
+                                Number.isFinite(numero)
+                            ) {
+                                return numero;
+                            }
+                        }
+                    }
+
+                    const maxHeight =
+                        mapa.get('max-height');
+
+                    if (maxHeight) {
+                        const texto =
+                            String(maxHeight)
+                                .trim()
+                                .toLowerCase();
+
+                        if (
+                            texto &&
+                            texto !== 'none' &&
+                            texto !== 'auto'
+                        ) {
+                            if (
+                                typeof maxHeight.value ===
+                                    'number' &&
+                                maxHeight.unit === 'px'
+                            ) {
+                                return maxHeight.value;
+                            }
+
+                            const numero =
+                                parseFloat(texto);
+
+                            if (
+                                Number.isFinite(numero)
+                            ) {
+                                return numero;
+                            }
+                        }
+                    }
+
+                } catch (_) {}
+            }
+
+            /*
+             * Fallback para height inline.
+             */
+            const inline =
+                elemento.style
+                    .getPropertyValue(
+                        'height'
+                    )
+                    .trim();
+
+            if (
+                inline &&
+                inline !== 'auto'
+            ) {
+                const numero =
+                    parseFloat(inline);
+
+                if (
+                    Number.isFinite(numero)
+                ) {
+                    return numero;
+                }
+            }
+
+            /*
+             * Outro fallback importante:
+             *
+             * container pequeno + overflow escondido
+             * normalmente indica uma área realmente
+             * limitada pelo portal.
+             */
+            const estilo =
+                window.getComputedStyle(
+                    elemento
+                );
+
+            const rect =
+                elemento
+                    .getBoundingClientRect();
+
+            const overflowLimitado =
+                estilo.overflow === 'hidden' ||
+                estilo.overflow === 'clip' ||
+                estilo.overflowY === 'hidden' ||
+                estilo.overflowY === 'clip';
+
+            if (
+                overflowLimitado &&
+                rect.height >= 40
+            ) {
+                return rect.height;
+            }
+
+            return null;
+        }
+
+        _lerEspaco() {
+            const ancestrais =
+                this._obterAncestrais();
+
+            let largura =
+                window.innerWidth;
+
+            let alturaRestrita =
+                null;
+
+            for (
+                const elemento
+                of ancestrais
+            ) {
+                const rect =
+                    elemento
+                        .getBoundingClientRect();
+
+                if (
+                    Number.isFinite(
+                        rect.width
+                    ) &&
+                    rect.width > 0
+                ) {
+                    largura =
+                        Math.min(
+                            largura,
+                            rect.width
+                        );
+                }
+
+                const alturaCSS =
+                    this._obterAlturaCSS(
+                        elemento
+                    );
+
+                if (
+                    Number.isFinite(
+                        alturaCSS
+                    ) &&
+                    alturaCSS >= 40
+                ) {
+                    if (
+                        alturaRestrita ===
+                        null
+                    ) {
+                        alturaRestrita =
+                            alturaCSS;
+                    } else {
+                        alturaRestrita =
+                            Math.min(
+                                alturaRestrita,
+                                alturaCSS
+                            );
+                    }
+                }
+            }
+
+            return {
+                largura:
+                    Math.max(
+                        1,
+                        largura
+                    ),
+
+                alturaRestrita
+            };
+        }
+
+        _calcularDimensoes() {
             const formato =
                 this._obterFormato();
 
             const config =
                 FORMATOS[formato];
 
+            const espaco =
+                this._lerEspaco();
+
+            const limiteMobile =
+                config.limiteMobile ||
+                LIMITE_MOBILE;
+
             const mobile =
                 window.innerWidth <=
-                (config.limiteMobile ||
-                    LIMITE_MOBILE);
+                limiteMobile;
 
             let largura =
                 config.largura;
@@ -276,13 +540,22 @@
             let altura =
                 config.altura;
 
+            let modo =
+                'normal';
+
+            /*
+             * MOBILE DEFINIDO PELO FORMATO.
+             */
             if (mobile) {
+                modo =
+                    'mobile';
+
                 if (
                     config.larguraMobile ===
                     'disponivel'
                 ) {
                     largura =
-                        window.innerWidth;
+                        espaco.largura;
 
                 } else if (
                     Number.isFinite(
@@ -290,7 +563,17 @@
                     )
                 ) {
                     largura =
-                        config.larguraMobile;
+                        Math.min(
+                            config.larguraMobile,
+                            espaco.largura
+                        );
+
+                } else {
+                    largura =
+                        Math.min(
+                            config.largura,
+                            espaco.largura
+                        );
                 }
 
                 if (
@@ -301,54 +584,115 @@
                     altura =
                         config.alturaMobile;
                 }
+            } else {
+                /*
+                 * DESKTOP.
+                 *
+                 * Apenas respeitamos a largura física
+                 * disponível.
+                 */
+                largura =
+                    Math.min(
+                        config.largura,
+                        espaco.largura
+                    );
             }
 
             /*
-             * Nunca ultrapassa fisicamente
-             * o viewport.
+             * CONTAINER COM ALTURA RESTRITA.
+             *
+             * Só entra aqui se esse formato tiver
+             * uma versão preparada especificamente
+             * para altura reduzida.
+             *
+             * Atualmente: 970x250x100.
              */
-            largura =
-                Math.min(
-                    largura,
-                    window.innerWidth
-                );
+            if (
+                Number.isFinite(
+                    config.alturaRestrita
+                ) &&
+                Number.isFinite(
+                    espaco.alturaRestrita
+                ) &&
+                espaco.alturaRestrita <
+                    config.altura
+            ) {
+                /*
+                 * Exemplo:
+                 *
+                 * formato = 970x250x100
+                 * natural = 250
+                 * portal  = 100
+                 */
+                if (
+                    espaco.alturaRestrita <=
+                    config.alturaRestrita + 20
+                ) {
+                    modo =
+                        'restrito';
+
+                    altura =
+                        Math.min(
+                            config.alturaRestrita,
+                            espaco.alturaRestrita
+                        );
+
+                    if (
+                        config.larguraRestrita ===
+                        'disponivel'
+                    ) {
+                        largura =
+                            espaco.largura;
+                    }
+                }
+            }
+
+            /*
+             * 1260x100 sempre possui 100px.
+             */
+            if (
+                formato ===
+                '1260x100'
+            ) {
+                altura = 100;
+
+                largura =
+                    Math.min(
+                        1260,
+                        espaco.largura
+                    );
+            }
 
             return {
                 formato,
-                config,
-                mobile,
-                largura,
-                altura
+                modo,
+
+                largura:
+                    Math.max(
+                        1,
+                        Math.round(largura)
+                    ),
+
+                altura:
+                    Math.max(
+                        1,
+                        Math.round(altura)
+                    )
             };
         }
 
-        /*
-         * Aplica o tamanho natural primeiro.
-         *
-         * Isso é essencial.
-         *
-         * Se o pai tiver height:auto,
-         * ele vai crescer junto.
-         *
-         * Se estiver realmente travado em 100px,
-         * continuará com 100px.
-         */
-        _aplicarTamanho(
-            largura,
-            altura,
-            ocultar = false
+        _aplicarDimensoes(
+            dimensoes
         ) {
-            largura =
-                Math.max(
-                    1,
-                    Math.round(largura)
-                );
+            if (!this._iframe) {
+                return;
+            }
 
-            altura =
-                Math.max(
-                    1,
-                    Math.round(altura)
-                );
+            const {
+                largura,
+                altura,
+                modo
+            } = dimensoes;
 
             this.style.setProperty(
                 'width',
@@ -381,16 +725,21 @@
             );
 
             this.style.setProperty(
-                'visibility',
-                ocultar
-                    ? 'hidden'
-                    : 'visible',
+                'overflow',
+                'hidden',
                 'important'
             );
 
-            if (!this._iframe) {
-                return;
-            }
+            /*
+             * Não usamos visibility:hidden.
+             * Não alteramos para 250 e depois voltamos.
+             *
+             * Portanto não existe a piscada da versão
+             * anterior.
+             */
+            this.style.removeProperty(
+                'visibility'
+            );
 
             this._iframe.width =
                 String(largura);
@@ -415,212 +764,23 @@
                 '0',
                 'important'
             );
+
+            this._iframe.style.setProperty(
+                'margin',
+                '0',
+                'important'
+            );
+
+            this.dataset.previaModo =
+                modo;
+
+            this.dataset.previaLargura =
+                String(largura);
+
+            this.dataset.previaAltura =
+                String(altura);
         }
 
-        /*
-         * Essa leitura acontece DEPOIS de o banner
-         * ter recebido o tamanho natural.
-         */
-        _lerEspacoReal(
-            larguraEsperada,
-            alturaEsperada
-        ) {
-            const ancestrais =
-                this._obterAncestrais();
-
-            let larguraDisponivel =
-                window.innerWidth;
-
-            let alturaRestrita =
-                null;
-
-            let elementoRestritivo =
-                null;
-
-            for (
-                const elemento
-                of ancestrais
-            ) {
-                const rect =
-                    elemento
-                        .getBoundingClientRect();
-
-                if (
-                    rect.width > 0
-                ) {
-                    larguraDisponivel =
-                        Math.min(
-                            larguraDisponivel,
-                            rect.width
-                        );
-                }
-
-                /*
-                 * Aqui está o ponto importante:
-                 *
-                 * O banner já está, por exemplo,
-                 * com 250px.
-                 *
-                 * Se o container continua com 100px,
-                 * significa que o portal realmente
-                 * está limitando a área.
-                 */
-                if (
-                    rect.height >= 40 &&
-                    rect.height + 2 <
-                        alturaEsperada
-                ) {
-                    alturaRestrita =
-                        rect.height;
-
-                    elementoRestritivo =
-                        elemento;
-
-                    break;
-                }
-            }
-
-            return {
-                largura:
-                    Math.max(
-                        1,
-                        larguraDisponivel
-                    ),
-
-                alturaRestrita,
-
-                elementoRestritivo
-            };
-        }
-
-        _calcularTamanhoFinal(
-            base,
-            espaco
-        ) {
-            const {
-                config,
-                formato,
-                mobile
-            } = base;
-
-            let largura =
-                Math.min(
-                    base.largura,
-                    espaco.largura
-                );
-
-            let altura =
-                base.altura;
-
-            let modo =
-                mobile
-                    ? 'mobile'
-                    : 'normal';
-
-            /*
-             * Caso especial:
-             *
-             * 970x250x100
-             *
-             * Se o portal continuar restrito
-             * em aproximadamente 100px depois
-             * de tentarmos 250px, usamos a
-             * versão compacta.
-             */
-            if (
-                !mobile &&
-                Number.isFinite(
-                    config.alturaRestrita
-                ) &&
-                Number.isFinite(
-                    espaco.alturaRestrita
-                )
-            ) {
-                const limite =
-                    config.alturaRestrita +
-                    (
-                        config
-                            .toleranciaRestrita ||
-                        0
-                    );
-
-                if (
-                    espaco.alturaRestrita <=
-                    limite
-                ) {
-                    modo =
-                        'restrito';
-
-                    altura =
-                        Math.min(
-                            config.alturaRestrita,
-                            espaco.alturaRestrita
-                        );
-
-                    if (
-                        config.larguraRestrita ===
-                        'disponivel'
-                    ) {
-                        largura =
-                            espaco.largura;
-                    }
-                }
-            }
-
-            /*
-             * 1260x100 já possui 100px
-             * naturalmente.
-             */
-            if (
-                formato ===
-                '1260x100'
-            ) {
-                largura =
-                    Math.min(
-                        config.largura,
-                        espaco.largura
-                    );
-
-                altura = 100;
-            }
-
-            /*
-             * 970x250 normal:
-             *
-             * pode diminuir de largura,
-             * mas não inventamos uma altura
-             * compacta que não existe.
-             */
-            if (
-                formato ===
-                '970x250'
-            ) {
-                altura = 250;
-            }
-
-            return {
-                largura:
-                    Math.max(
-                        1,
-                        Math.round(largura)
-                    ),
-
-                altura:
-                    Math.max(
-                        1,
-                        Math.round(altura)
-                    ),
-
-                modo
-            };
-        }
-
-        /*
-         * AJUSTE EM DUAS FASES
-         *
-         * 1. tamanho natural
-         * 2. lê o portal
-         */
         _ajustar() {
             if (
                 !this.isConnected ||
@@ -629,94 +789,68 @@
                 return;
             }
 
-            const token =
-                ++this._tokenAjuste;
+            const dimensoes =
+                this._calcularDimensoes();
 
-            const base =
-                this._calcularTamanhoBase();
+            const assinatura =
+                [
+                    dimensoes.formato,
+                    dimensoes.modo,
+                    dimensoes.largura,
+                    dimensoes.altura
+                ].join('|');
 
             /*
-             * Primeiro colocamos o tamanho correto
-             * do criativo.
-             *
-             * Ocultamos por um frame para evitar
-             * piscada durante a medição.
+             * Fundamental para evitar loop com
+             * ResizeObserver.
              */
-            this._aplicarTamanho(
-                base.largura,
-                base.altura,
-                true
-            );
-
-            requestAnimationFrame(() => {
-                if (
-                    token !==
-                        this._tokenAjuste ||
-                    !this.isConnected
-                ) {
-                    return;
-                }
-
-                /*
-                 * Um segundo frame garante que
-                 * media queries/layout do portal
-                 * já tenham sido recalculados.
-                 */
-                requestAnimationFrame(() => {
-                    if (
-                        token !==
-                            this._tokenAjuste ||
-                        !this.isConnected
-                    ) {
-                        return;
-                    }
-
-                    const espaco =
-                        this._lerEspacoReal(
-                            base.largura,
-                            base.altura
-                        );
-
-                    const final =
-                        this._calcularTamanhoFinal(
-                            base,
-                            espaco
-                        );
-
-                    this._aplicarTamanho(
-                        final.largura,
-                        final.altura,
-                        false
-                    );
-
-                    this.dataset.previaModo =
-                        final.modo;
-
-                    this.dataset.previaLargura =
-                        String(
-                            final.largura
-                        );
-
-                    this.dataset.previaAltura =
-                        String(
-                            final.altura
-                        );
-                });
-            });
-        }
-
-        _agendarAjuste() {
-            if (this._frame) {
-                cancelAnimationFrame(
-                    this._frame
-                );
+            if (
+                assinatura ===
+                this._ultimoEstado
+            ) {
+                return;
             }
 
-            this._frame =
-                requestAnimationFrame(() => {
-                    this._frame = null;
-                    this._ajustar();
-                });
+            this._ultimoEstado =
+                assinatura;
+
+            this._aplicarDimensoes(
+                dimensoes
+            );
+        }
+
+        _agendarAjuste(atraso = 0) {
+            if (this._resizeTimer) {
+                clearTimeout(
+                    this._resizeTimer
+                );
+
+                this._resizeTimer = null;
+            }
+
+            const executar = () => {
+                if (this._frame) {
+                    cancelAnimationFrame(
+                        this._frame
+                    );
+                }
+
+                this._frame =
+                    requestAnimationFrame(() => {
+                        this._frame = null;
+                        this._ajustar();
+                    });
+            };
+
+            if (atraso > 0) {
+                this._resizeTimer =
+                    setTimeout(
+                        executar,
+                        atraso
+                    );
+            } else {
+                executar();
+            }
         }
 
         _observarContainers() {
@@ -731,6 +865,11 @@
                 return;
             }
 
+            /*
+             * Podemos voltar a observar os containers
+             * porque agora a medição NÃO muda
+             * temporariamente o tamanho do banner.
+             */
             this._resizeObserver =
                 new ResizeObserver(() => {
                     this._agendarAjuste();
