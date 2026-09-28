@@ -2189,8 +2189,8 @@ body[data-formato="300x250"] #previa-widget {
     }
 }
 
-/* 970 × 250 no desktop e faixa de 100px no mobile. */
-@media (max-width: 760px) {
+/* 970 × 250 normal; layout compacto quando a largura ou a altura forem reduzidas. */
+@media (max-width: 760px), (max-height: 120px) {
     body[data-formato="970x250x100"] #previa-widget {
         width: 100vw;
         height: 100px;
@@ -2546,7 +2546,7 @@ body[data-formato="1260x100"] #previa-widget {
     height: 100px;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 760px), (max-height: 120px) {
     .pe-widget--970x250x100.pe-widget--pagina-candidatos .pe-conteudo {
         grid-template-rows: minmax(0, 1fr) 24px;
     }
