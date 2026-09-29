@@ -3,7 +3,12 @@
 
     const TAG = 'previa-eleitoral-2026';
     const BASE_URL = 'https://previas-eleicoes-2026.vercel.app';
-    const BREAKPOINT = 1050;
+
+    /*
+     * Breakpoint usado quando o cliente não informar
+     * um breakpoint específico no componente.
+     */
+    const BREAKPOINT_PADRAO = 1050;
 
     const FORMATOS = {
         index: {
@@ -99,6 +104,10 @@
         return;
     }
 
+    /*
+     * Permite colocar o mesmo embed.js mais de uma
+     * vez na página sem gerar erro.
+     */
     if (customElements.get(TAG)) {
         return;
     }
@@ -108,14 +117,22 @@
             super();
 
             this._iframe = null;
+            this._resizeTimer = null;
 
             this._resizeHandler = () => {
-                this._ajustar();
+                this._agendarAjuste();
             };
         }
 
+        /*
+         * Podemos mudar formato e breakpoint
+         * dinamicamente.
+         */
         static get observedAttributes() {
-            return ['formato'];
+            return [
+                'formato',
+                'breakpoint'
+            ];
         }
 
         connectedCallback() {
@@ -143,6 +160,14 @@
                 'resize',
                 this._resizeHandler
             );
+
+            if (this._resizeTimer) {
+                clearTimeout(
+                    this._resizeTimer
+                );
+
+                this._resizeTimer = null;
+            }
         }
 
         attributeChangedCallback(
@@ -151,14 +176,24 @@
             novo
         ) {
             if (
-                nome !== 'formato' ||
                 antigo === novo ||
                 !this.isConnected
             ) {
                 return;
             }
 
-            this._renderizar();
+            /*
+             * Se mudou o formato precisamos
+             * carregar outro HTML.
+             */
+            if (nome === 'formato') {
+                this._renderizar();
+            }
+
+            /*
+             * Se mudou apenas breakpoint,
+             * basta recalcular dimensões.
+             */
             this._ajustar();
         }
 
@@ -167,27 +202,77 @@
                 this.getAttribute('formato') ||
                 'index';
 
-            return Object.prototype.hasOwnProperty.call(
-                FORMATOS,
-                formato
-            )
-                ? formato
-                : 'index';
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    FORMATOS,
+                    formato
+                )
+            ) {
+                return formato;
+            }
+
+            console.warn(
+                `[Prévia Eleitoral] Formato "${formato}" não encontrado. Usando "index".`
+            );
+
+            return 'index';
+        }
+
+        /*
+         * O breakpoint agora pode ser escolhido
+         * individualmente em cada cliente/banner:
+         *
+         * breakpoint="1050"
+         * breakpoint="900"
+         * breakpoint="768"
+         *
+         * Se não existir, usa 1050.
+         */
+        _obterBreakpoint() {
+            const atributo =
+                this.getAttribute(
+                    'breakpoint'
+                );
+
+            if (!atributo) {
+                return BREAKPOINT_PADRAO;
+            }
+
+            const breakpoint =
+                Number(atributo);
+
+            if (
+                !Number.isFinite(breakpoint) ||
+                breakpoint <= 0
+            ) {
+                return BREAKPOINT_PADRAO;
+            }
+
+            return breakpoint;
+        }
+
+        _obterUrl(formato) {
+            return `${BASE_URL}/${formato}.html`;
         }
 
         _renderizar() {
+            if (!this.shadowRoot) {
+                return;
+            }
+
             const formato =
                 this._obterFormato();
 
             const src =
-                `${BASE_URL}/${formato}.html`;
+                this._obterUrl(formato);
 
             this.shadowRoot.innerHTML = `
                 <style>
                     :host {
                         display: block !important;
                         box-sizing: border-box !important;
-                        margin: 0 auto !important;
+                        margin-left: auto !important;
+                        margin-right: auto !important;
                         padding: 0 !important;
                         border: 0 !important;
                         overflow: hidden !important;
@@ -221,8 +306,8 @@
                         src="${src}"
                         title="Prévia adaptativa das Eleições 2026"
                         loading="lazy"
-                        scrolling="no"
-                    ></iframe>
+                        scrolling="no">
+                    </iframe>
                 </div>
             `;
 
@@ -232,51 +317,117 @@
                 );
         }
 
-        _ajustar() {
-            if (!this._iframe) {
-                return;
-            }
-
+        _obterTamanho() {
             const formato =
                 this._obterFormato();
 
             const config =
                 FORMATOS[formato];
 
+            const breakpoint =
+                this._obterBreakpoint();
+
+            /*
+             * Única regra para desktop/mobile:
+             *
+             * viewport > breakpoint
+             *     desktop
+             *
+             * viewport <= breakpoint
+             *     mobile
+             */
             const mobile =
                 window.innerWidth <=
-                BREAKPOINT;
+                breakpoint;
 
             const tamanho =
                 mobile
                     ? config.mobile
                     : config.desktop;
 
-            let largura;
+            return {
+                formato,
+                breakpoint,
+                mobile,
+                largura:
+                    tamanho.largura,
+                altura:
+                    tamanho.altura
+            };
+        }
+
+        _ajustar() {
+            if (
+                !this.isConnected ||
+                !this._iframe
+            ) {
+                return;
+            }
+
+            const tamanho =
+                this._obterTamanho();
+
+            /*
+             * -------------------------
+             * LARGURA
+             * -------------------------
+             */
 
             if (
-                tamanho.largura === '100%'
+                tamanho.largura ===
+                '100%'
             ) {
-                largura = '100%';
+                /*
+                 * Versões fluidas:
+                 *
+                 * 970x250x100 mobile
+                 * 1260x100 mobile
+                 * horizontal mobile
+                 * etc.
+                 */
+                this.style.setProperty(
+                    'width',
+                    '100%',
+                    'important'
+                );
+
+                this.style.setProperty(
+                    'max-width',
+                    '100%',
+                    'important'
+                );
+
             } else {
-                largura =
-                    `${tamanho.largura}px`;
+                /*
+                 * Medidas fixas:
+                 *
+                 * 970px
+                 * 1260px
+                 * 300px
+                 * etc.
+                 */
+                this.style.setProperty(
+                    'width',
+                    `${tamanho.largura}px`,
+                    'important'
+                );
+
+                /*
+                 * Não deixa criar scroll horizontal
+                 * caso o espaço físico seja menor.
+                 */
+                this.style.setProperty(
+                    'max-width',
+                    '100%',
+                    'important'
+                );
             }
 
             /*
-             * COMPONENTE
+             * -------------------------
+             * ALTURA
+             * -------------------------
              */
-            this.style.setProperty(
-                'width',
-                largura,
-                'important'
-            );
-
-            this.style.setProperty(
-                'max-width',
-                '100%',
-                'important'
-            );
 
             this.style.setProperty(
                 'height',
@@ -290,9 +441,18 @@
                 'important'
             );
 
+            this.style.setProperty(
+                'max-height',
+                `${tamanho.altura}px`,
+                'important'
+            );
+
             /*
+             * -------------------------
              * IFRAME
+             * -------------------------
              */
+
             this._iframe.style.setProperty(
                 'width',
                 '100%',
@@ -301,7 +461,7 @@
 
             this._iframe.style.setProperty(
                 'height',
-                `${tamanho.altura}px`,
+                '100%',
                 'important'
             );
 
@@ -311,22 +471,103 @@
                 'important'
             );
 
-            this._iframe.width =
+            this._iframe.style.setProperty(
+                'border',
+                '0',
+                'important'
+            );
+
+            this._iframe.style.setProperty(
+                'margin',
+                '0',
+                'important'
+            );
+
+            this._iframe.style.setProperty(
+                'padding',
+                '0',
+                'important'
+            );
+
+            this._iframe.style.setProperty(
+                'overflow',
+                'hidden',
+                'important'
+            );
+
+            /*
+             * width/height HTML do iframe.
+             *
+             * Para largura fluida usamos a largura
+             * física atual do componente.
+             */
+            const larguraReal =
                 tamanho.largura === '100%'
-                    ? '100%'
-                    : String(
-                        tamanho.largura
-                    );
+                    ? Math.round(
+                        this.getBoundingClientRect()
+                            .width
+                    )
+                    : tamanho.largura;
+
+            this._iframe.width =
+                String(
+                    Math.max(
+                        1,
+                        larguraReal
+                    )
+                );
 
             this._iframe.height =
                 String(
                     tamanho.altura
                 );
 
+            /*
+             * Informações úteis para inspecionar
+             * pelo DevTools.
+             */
+            this.dataset.previaFormato =
+                tamanho.formato;
+
+            this.dataset.previaBreakpoint =
+                String(
+                    tamanho.breakpoint
+                );
+
             this.dataset.previaModo =
-                mobile
+                tamanho.mobile
                     ? 'mobile'
                     : 'desktop';
+
+            this.dataset.previaLargura =
+                String(
+                    larguraReal
+                );
+
+            this.dataset.previaAltura =
+                String(
+                    tamanho.altura
+                );
+        }
+
+        /*
+         * Pequeno debounce para resize.
+         *
+         * Evita dezenas de ajustes enquanto
+         * o usuário redimensiona a janela.
+         */
+        _agendarAjuste() {
+            if (this._resizeTimer) {
+                clearTimeout(
+                    this._resizeTimer
+                );
+            }
+
+            this._resizeTimer =
+                setTimeout(() => {
+                    this._resizeTimer = null;
+                    this._ajustar();
+                }, 40);
         }
     }
 
