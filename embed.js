@@ -12,7 +12,6 @@
 
     const FORMATOS = {
         index: {
-            limiteMobile: 760,
             desktop: {
                 largura: 1180,
                 altura: 680
@@ -24,7 +23,6 @@
         },
 
         horizontal: {
-            limiteMobile: 760,
             desktop: {
                 largura: 1200,
                 altura: 100
@@ -36,7 +34,6 @@
         },
 
         '970x90': {
-            limiteMobile: 760,
             desktop: {
                 largura: 970,
                 altura: 90
@@ -48,7 +45,6 @@
         },
 
         '970x250': {
-            limiteMobile: 760,
             desktop: {
                 largura: 970,
                 altura: 250
@@ -60,7 +56,6 @@
         },
 
         '970x250x100': {
-            limiteMobile: 760,
             desktop: {
                 largura: 970,
                 altura: 250
@@ -72,7 +67,6 @@
         },
 
         '1260x100': {
-            limiteMobile: 760,
             desktop: {
                 largura: 1260,
                 altura: 100
@@ -124,7 +118,6 @@
 
             this._iframe = null;
             this._resizeTimer = null;
-            this._resizeObserver = null;
 
             this._resizeHandler = () => {
                 this._agendarAjuste();
@@ -159,16 +152,6 @@
                 }
             );
 
-            if ('ResizeObserver' in window) {
-                this._resizeObserver = new ResizeObserver(
-                    () => this._agendarAjuste()
-                );
-
-                this._resizeObserver.observe(
-                    this.parentElement || this
-                );
-            }
-
             this._ajustar();
         }
 
@@ -184,11 +167,6 @@
                 );
 
                 this._resizeTimer = null;
-            }
-
-            if (this._resizeObserver) {
-                this._resizeObserver.disconnect();
-                this._resizeObserver = null;
             }
         }
 
@@ -349,28 +327,18 @@
             const breakpoint =
                 this._obterBreakpoint();
 
-            const larguraDoContainer = Math.round(
-                this.parentElement?.getBoundingClientRect().width ||
-                window.innerWidth
-            );
-
             /*
-             * O atributo "breakpoint" não pode forçar um layout mobile
-             * acima do limite que o HTML interno realmente suporta.
-             * Isso evita, por exemplo, que breakpoint="1050" transforme
-             * o 1260x100 em uma composição de celular num notebook.
+             * Única regra para desktop/mobile:
+             *
+             * viewport > breakpoint
+             *     desktop
+             *
+             * viewport <= breakpoint
+             *     mobile
              */
-            const limiteMobile = Math.min(
-                breakpoint,
-                config.limiteMobile || breakpoint
-            );
-
-            const larguraDisponivel = Math.min(
-                window.innerWidth,
-                larguraDoContainer
-            );
-
-            const mobile = larguraDisponivel <= limiteMobile;
+            const mobile =
+                window.innerWidth <=
+                breakpoint;
 
             const tamanho =
                 mobile
@@ -380,9 +348,7 @@
             return {
                 formato,
                 breakpoint,
-                limiteMobile,
                 mobile,
-                larguraDisponivel,
                 largura:
                     tamanho.largura,
                 altura:
@@ -535,13 +501,13 @@
              * Para largura fluida usamos a largura
              * física atual do componente.
              */
-            const larguraReal = Math.round(
-                this.getBoundingClientRect().width
-            ) || (
+            const larguraReal =
                 tamanho.largura === '100%'
-                    ? tamanho.larguraDisponivel
-                    : tamanho.largura
-            );
+                    ? Math.round(
+                        this.getBoundingClientRect()
+                            .width
+                    )
+                    : tamanho.largura;
 
             this._iframe.width =
                 String(
@@ -566,11 +532,6 @@
             this.dataset.previaBreakpoint =
                 String(
                     tamanho.breakpoint
-                );
-
-            this.dataset.previaLimiteMobile =
-                String(
-                    tamanho.limiteMobile
                 );
 
             this.dataset.previaModo =
