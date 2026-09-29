@@ -19,6 +19,19 @@ Use `?view=candidatos` para abrir diretamente a área de candidatos.
 
 ## Incorporar em outro site
 
+O modo recomendado é usar o componente criado pelo `embed.js`:
+
+```html
+<script src="https://previas-eleicoes-2026.vercel.app/embed.js" defer></script>
+
+<previa-eleitoral-2026
+  formato="1260x100"
+  breakpoint="1050">
+</previa-eleitoral-2026>
+```
+
+O componente limita a mudança estrutural para mobile a 760px, que é o breakpoint suportado pelos layouts internos. Assim, `breakpoint="1050"` não transforma o banner em composição de celular entre 761 e 1050px; nessa faixa ele apenas respeita o espaço disponível e mantém o desenho desktop.
+
 As dimensões precisam estar na própria tag `<iframe>` da página que incorpora a prévia. Sem `width` e `height`, o navegador usa o tamanho padrão de 300 × 150. O conteúdo hospedado na Vercel não consegue corrigir sozinho o tamanho do iframe quando o portal está em outro domínio.
 
 Carregue `embed.js` uma vez na página hospedeira e identifique o formato na classe do iframe. O script preserva as dimensões nominais e ajusta a altura conforme o formato e o espaço disponível.
