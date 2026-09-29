@@ -53,6 +53,7 @@ body[data-formato="970x90"],
 body[data-formato="970x250"],
 body[data-formato="970x250x100"],
 body[data-formato="1260x100"],
+body[data-formato="1260x200"],
 body[data-formato="300x600"],
 body[data-formato="300x250"] {
     place-items: start center;
@@ -2546,7 +2547,21 @@ body[data-formato="1260x100"] #previa-widget {
     height: 100px;
 }
 
+body[data-formato="1260x200"] #previa-widget {
+    width: min(1260px, 100vw);
+    height: 200px;
+}
+
+.pe-widget--1260x200 .pe-card {
+    height: 133px;
+}
+
 @media (max-width: 760px) {
+    body[data-formato="1260x200"] #previa-widget {
+        width: 100vw;
+        height: 100px;
+    }
+
     .pe-widget--970x250x100.pe-widget--pagina-candidatos .pe-conteudo {
         grid-template-rows: minmax(0, 1fr) 24px;
     }
@@ -2661,6 +2676,82 @@ body[data-formato="1260x100"] #previa-widget {
         height: 36px;
         padding: 5px;
         font-size: 0.5rem;
+    }
+
+    body[data-formato="970x90"] #previa-widget {
+        width: 100vw;
+        height: 90px;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-conteudo {
+        grid-template-rows: minmax(0, 1fr) 22px;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-nav-mobile,
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-nav-mobile button {
+        min-height: 22px;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-candidatos {
+        height: 68px;
+        grid-template-rows: 32px minmax(0, 1fr);
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-filtros {
+        height: 32px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-campo select,
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-campo input {
+        height: 25px;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-campo-busca svg {
+        bottom: 7px;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-lista {
+        height: 36px;
+        padding-top: 3px;
+        padding-bottom: 3px;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-card {
+        height: 30px;
+        grid-template-columns: 22px minmax(0, 1fr) auto;
+        column-gap: 4px;
+        padding: 1px 4px;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-avatar {
+        width: 20px;
+        height: 20px;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-cargo-card {
+        display: none;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-card h2 {
+        grid-row: 1 / 3;
+        align-self: end;
+        font-size: 0.4rem;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-partido {
+        grid-row: 3;
+        font-size: 0.31rem;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-numero {
+        font-size: 0.5rem;
+    }
+
+    .pe-widget--970x90.pe-widget--pagina-candidatos .pe-estado {
+        min-height: 30px;
+        height: 30px;
     }
 }
 

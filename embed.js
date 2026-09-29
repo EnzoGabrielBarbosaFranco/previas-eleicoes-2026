@@ -39,8 +39,8 @@
                 altura: 90
             },
             mobile: {
-                largura: 300,
-                altura: 250
+                largura: '100%',
+                altura: 90
             }
         },
 
@@ -70,6 +70,17 @@
             desktop: {
                 largura: 1260,
                 altura: 100
+            },
+            mobile: {
+                largura: '100%',
+                altura: 100
+            }
+        },
+
+        '1260x200': {
+            desktop: {
+                largura: 1260,
+                altura: 200
             },
             mobile: {
                 largura: '100%',
