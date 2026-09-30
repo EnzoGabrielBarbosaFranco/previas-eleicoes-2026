@@ -279,7 +279,8 @@ body[data-formato="320x100"] #previa-widget {
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    height: 76px;
+    height: 100%;
+    overflow: hidden;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 34px minmax(0, 1fr);
 }
@@ -335,15 +336,21 @@ body[data-formato="320x100"] #previa-widget {
 }
 
 .pe-widget--320x100.pe-widget--pagina-candidatos .pe-lista {
-    height: 42px;
+    height: 100%;
+    min-height: 0;
     gap: 4px;
     padding: 3px 4px;
+    scrollbar-width: none;
+}
+
+.pe-widget--320x100.pe-widget--pagina-candidatos .pe-lista::-webkit-scrollbar {
+    display: none;
 }
 
 .pe-widget--320x100.pe-widget--pagina-candidatos .pe-card {
     flex-basis: 158px;
     width: 158px;
-    height: 36px;
+    height: 34px;
     grid-template-columns: 26px minmax(0, 1fr) auto;
     column-gap: 5px;
     padding: 2px 4px;
