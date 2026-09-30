@@ -165,7 +165,8 @@
             '970x90': 'pe-widget--horizontal pe-widget--970x90 pe-widget--970x250x100',
             '970x250x100': 'pe-widget--970x250 pe-widget--970x250x100',
             '1260x100': 'pe-widget--horizontal pe-widget--970x250x100 pe-widget--1260x100',
-            '1260x200': 'pe-widget--970x250 pe-widget--970x250x100 pe-widget--1260x200'
+            '1260x200': 'pe-widget--970x250 pe-widget--970x250x100 pe-widget--1260x200',
+            '320x100': 'pe-widget--horizontal pe-widget--970x250x100 pe-widget--1260x100 pe-widget--320x100'
         };
         const classesFormato = classesComBase[formato] || `pe-widget--${escaparHtml(formato)}`;
 
@@ -292,7 +293,8 @@
             || formato === '970x90'
             || formato === '970x250x100'
             || formato === '1260x100'
-            || formato === '1260x200';
+            || formato === '1260x200'
+            || formato === '320x100';
         const opcoesCargo = configuracao.cargos.map((cargo) => `
             <option value="${escaparHtml(cargo.codigo)}" ${cargo.codigo === estado.cargo ? 'selected' : ''}>
                 ${escaparHtml(formatoCompacto ? cargo.nomeCompacto : cargo.nome)}
@@ -389,7 +391,7 @@
             return uf.sigla !== 'br';
         });
         seletor.innerHTML = ufs.map((uf) => `
-            <option value="${escaparHtml(uf.sigla)}">${escaparHtml((formato === '300x250' || formato === 'horizontal' || formato === '970x90' || formato === '970x250x100' || formato === '1260x100' || formato === '1260x200') && uf.sigla === 'br' ? 'Brasil' : uf.nome)}</option>
+            <option value="${escaparHtml(uf.sigla)}">${escaparHtml((formato === '300x250' || formato === 'horizontal' || formato === '970x90' || formato === '970x250x100' || formato === '1260x100' || formato === '1260x200' || formato === '320x100') && uf.sigla === 'br' ? 'Brasil' : uf.nome)}</option>
         `).join('');
         seletor.value = estado.uf;
         seletor.disabled = nacional || distrital;
@@ -415,7 +417,7 @@
     function preencherPartidos(seletor) {
         const partidos = [...new Set(candidatosDoCargo().map((candidato) => candidato.partido).filter(Boolean))]
             .sort((a, b) => a.localeCompare(b, 'pt-BR'));
-        const rotuloTodos = formato === '300x250' || formato === 'horizontal' || formato === '970x90' || formato === '970x250x100' || formato === '1260x100' || formato === '1260x200'
+        const rotuloTodos = formato === '300x250' || formato === 'horizontal' || formato === '970x90' || formato === '970x250x100' || formato === '1260x100' || formato === '1260x200' || formato === '320x100'
             ? 'Partidos'
             : 'Todos os partidos';
         seletor.innerHTML = [
@@ -564,7 +566,8 @@
             || formato === '970x250'
             || formato === '970x250x100'
             || formato === '1260x100'
-            || formato === '1260x200';
+            || formato === '1260x200'
+            || formato === '320x100';
         const reduzirMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const deveAnimar = formatoComRolagem && !reduzirMovimento;
         const delta = Math.min(tempo - ultimoFrame, 50);

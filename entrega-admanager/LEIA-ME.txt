@@ -1,0 +1,41 @@
+PACOTE DE BANNERS — GOOGLE AD MANAGER
+
+1. Escolha o arquivo correspondente ao formato contratado.
+2. Abra o arquivo .txt e copie todo o conteúdo.
+3. No Google Ad Manager, crie um criativo personalizado e cole o código.
+4. Não carregue embed.js e não use <previa-eleitoral-2026> no Ad Manager.
+
+TAMANHOS DO INVENTÁRIO
+
+Formato desktop         Tamanho       Criativo mobile
+Página ampla            1180x680      320x100.txt
+Horizontal              1200x100      320x100.txt
+970x90                  970x90        320x100.txt
+970x250                 970x250       320x100.txt
+970x250x100             970x250       320x100.txt
+1260x100                1260x100      320x100.txt
+1260x200                1260x200      320x100.txt
+
+O único tamanho mobile responsivo é 320x100.
+
+Os formatos 300x250 e 300x600 continuam disponíveis como formatos fixos
+separados; eles não são versões mobile dos banners desktop.
+
+Para qualquer formato desktop da tabela, use o arquivo do próprio formato na
+associação desktop e 320x100.txt na associação mobile:
+
+- uma associação recebe o tamanho desktop;
+- a outra associação recebe 320x100 e o código de 320x100.txt.
+
+O banner mobile dedicado preserva a visão geral e, na área de candidatos,
+prioriza os filtros, a lista de candidatos e a navegação.
+
+O Google Ad Manager limita cada criativo personalizado a um único tamanho de
+inventário. Por isso, os dois tamanhos precisam estar cadastrados no item de
+linha e no slot responsivo do portal.
+
+Não cadastre variações de 300, 360 ou 400px para esta entrega mobile. O formato
+padronizado é somente 320x100.
+
+Para clientes que não usam Google Ad Manager, a integração antiga com embed.js
+e <previa-eleitoral-2026> continua disponível normalmente.

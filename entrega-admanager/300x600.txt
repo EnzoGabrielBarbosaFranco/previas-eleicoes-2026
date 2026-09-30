@@ -1,0 +1,8 @@
+<iframe
+  src="https://previa.paineleleitoralnews.com.br/300x600.html"
+  width="300"
+  height="600"
+  title="Prévia das Eleições 2026"
+  scrolling="no"
+  style="position:absolute;inset:0;display:block;width:100%;height:100%;margin:0;border:0;overflow:hidden">
+</iframe>

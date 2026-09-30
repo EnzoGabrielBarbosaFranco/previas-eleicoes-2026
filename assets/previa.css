@@ -54,6 +54,7 @@ body[data-formato="970x250"],
 body[data-formato="970x250x100"],
 body[data-formato="1260x100"],
 body[data-formato="1260x200"],
+body[data-formato="320x100"],
 body[data-formato="300x600"],
 body[data-formato="300x250"] {
     place-items: start center;
@@ -2544,6 +2545,11 @@ body[data-formato="300x250"] #previa-widget {
 /* Novos banners: experiência completa no desktop e filtros preservados no mobile. */
 body[data-formato="1260x100"] #previa-widget {
     width: min(1260px, 100vw);
+    height: 100px;
+}
+
+body[data-formato="320x100"] #previa-widget {
+    width: min(320px, 100vw);
     height: 100px;
 }
 
