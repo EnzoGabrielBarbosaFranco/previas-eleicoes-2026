@@ -1031,13 +1031,6 @@ body[data-formato="horizontal"] #previa-widget {
     box-shadow: 0 4px 12px color-mix(in srgb, var(--pe-destaque) 38%, transparent);
 }
 
-.pe-widget--horizontal .pe-nav-lateral button[data-pagina="candidatos"]:not(.is-ativo) {
-    border-color: color-mix(in srgb, var(--pe-secundaria) 72%, white);
-    color: var(--pe-sobre-secundaria);
-    background: var(--pe-secundaria);
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--pe-secundaria) 35%, transparent);
-}
-
 .pe-widget--horizontal .pe-nav svg {
     width: 15px;
     height: 15px;
