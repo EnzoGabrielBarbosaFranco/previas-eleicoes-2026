@@ -1,0 +1,17 @@
+# Apenas arquivos estáticos: não adicionar Functions/Workers a esta entrega.
+/*
+  Content-Security-Policy: frame-ancestors *;
+
+# Nomes com hash são gerados pelo build e nunca têm seu conteúdo alterado.
+/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Caminhos antigos permanecem disponíveis; não usar immutable neles.
+/assets/*
+  Cache-Control: public, max-age=300, must-revalidate
+
+/data/2026/*
+  Cache-Control: public, max-age=300, must-revalidate
+
+/embed.js
+  Cache-Control: public, max-age=300, must-revalidate

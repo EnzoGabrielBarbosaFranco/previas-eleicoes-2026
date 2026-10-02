@@ -609,8 +609,13 @@
     }
 
     async function requisitarJson(caminho) {
-        const resposta = await fetch(`${obterBaseCandidatos()}${caminho}`, {
-            cache: 'no-cache',
+        const url = new URL(`${obterBaseCandidatos()}${caminho}`, window.location.href);
+        // O build do Pages muda a versão quando a base muda, sem alterar as URLs dos banners.
+        if (configuracao.fonteDados.versaoCache) {
+            url.searchParams.set('v', configuracao.fonteDados.versaoCache);
+        }
+        const resposta = await fetch(url.href, {
+            cache: 'default',
             headers: { Accept: 'application/json' }
         });
         let dados = {};

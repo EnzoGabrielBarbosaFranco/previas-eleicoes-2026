@@ -8,6 +8,18 @@
           "value": "frame-ancestors *;"
         }
       ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }]
+    },
+    {
+      "source": "/data/2026/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }]
+    },
+    {
+      "source": "/embed.js",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }]
     }
   ]
 }

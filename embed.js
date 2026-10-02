@@ -2,7 +2,12 @@
     'use strict';
 
     const TAG = 'previa-eleitoral-2026';
-    const BASE_URL = 'https://previas-eleicoes-2026.vercel.app';
+    // Usa a hospedagem do próprio script, inclusive quando mudar de provedor.
+    // O fallback mantém compatibilidade com integrações que executam o código inline.
+    const scriptAtual = document.currentScript;
+    const BASE_URL = new URL('.', scriptAtual && scriptAtual.src
+        ? scriptAtual.src
+        : 'https://previas-eleicoes-2026.vercel.app/embed.js');
 
     /*
      * Breakpoint usado quando o cliente não informar
@@ -263,7 +268,7 @@
         }
 
         _obterUrl(formato) {
-            return `${BASE_URL}/${formato}.html`;
+            return new URL(`${formato}.html`, BASE_URL).href;
         }
 
         _renderizar() {

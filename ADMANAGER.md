@@ -2,6 +2,14 @@
 
 Os arquivos prontos para envio ficam na pasta `entrega-admanager`. Ela contém um `.txt` por formato e instruções de cadastro. Para clientes que não usam o Ad Manager, mantenha normalmente a integração com `embed.js`.
 
+## Hospedagem e códigos existentes
+
+Os snippets usam `https://previa.paineleleitoralnews.com.br`. Se esse domínio for mantido na migração de hospedagem, o cliente não precisará alterar os códigos de iframe ou de embed que já usam esse endereço. A mudança de DNS é uma etapa separada e depende de autorização.
+
+`https://previas-eleicao-2026.pages.dev` é o endereço de teste. Para testar um criativo separado, substitua apenas o domínio do `src` no snippet copiado; mantenha o caminho, as dimensões e o estilo. Não substitua os criativos em uso antes da aprovação. Os arquivos de entrega continuam com o domínio próprio, não com o endereço de teste.
+
+O teste automatizado verifica iframes entre origens diferentes, mas não substitui a validação em um criativo real do Ad Manager/SafeFrame. Verifique visão geral, candidatos, quatro filtros, links e preenchimento completo do slot. A altura de um contêiner externo de 110px não vira 100px por trocar de hospedagem: margens e fundos fora do iframe pertencem ao portal ou ao slot.
+
 ## O que o cliente copia
 
 Para o formato 1260 × 200 no desktop, use:

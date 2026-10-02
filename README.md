@@ -21,11 +21,20 @@ Use `?view=candidatos` para abrir diretamente a área de candidatos.
 
 ## Incorporar em outro site
 
-O modo recomendado fora de plataformas de anúncios é incorporar diretamente o HTML do formato em um `<iframe>`. O código de incorporação não precisa carregar `embed.js` nem registrar Web Components:
+Para sites que não usam Ad Manager, mantenha o `embed.js` quando precisar alternar automaticamente a altura desktop/mobile:
+
+```html
+<script src="https://previa.paineleleitoralnews.com.br/embed.js"></script>
+<previa-eleitoral-2026 formato="1260x200" breakpoint="1050"></previa-eleitoral-2026>
+```
+
+Esse formato mantém 200px de altura no desktop e 100px no mobile, conforme o breakpoint informado. O script usa a própria URL para localizar os HTMLs. Mantendo o domínio próprio, a troca entre Vercel e Cloudflare não exige mudar esse código.
+
+Para um iframe direto de altura fixa, também é possível incorporar o HTML sem carregar `embed.js` nem registrar Web Components:
 
 ```html
 <iframe
-  src="https://previas-eleicoes-2026.vercel.app/1260x100.html"
+  src="https://previa.paineleleitoralnews.com.br/1260x100.html"
   width="1260"
   height="100"
   title="Prévia das Eleições 2026"
@@ -45,7 +54,7 @@ No Ad Manager, cadastre o tamanho desktop contratado e o único tamanho mobile p
 
 Para o Google Ad Manager, use os códigos que preenchem 100% dos criativos em [ADMANAGER.md](./ADMANAGER.md). O desktop usa o arquivo do formato contratado e o mobile sempre usa `320x100.html`. Os arquivos prontos para copiar ficam em [`entrega-admanager`](./entrega-admanager/LEIA-ME.txt).
 
-O arquivo `embed.js` permanece no projeto somente para integrações antigas fora do Ad Manager. Nenhum dos HTMLs de formato depende dele.
+O arquivo `embed.js` continua disponível para integrações fora do Ad Manager. Nenhum dos HTMLs de formato depende dele. No Ad Manager, use somente os snippets de iframe da entrega, com o tamanho externo cadastrado na plataforma.
 
 Cadastre estes tamanhos externos no Ad Manager:
 
@@ -118,4 +127,14 @@ Depois de aplicar as situações atuais do DivulgaCandContas, valide a consistê
 node scripts/validar-candidatos-2026.js
 ```
 
-Depois, publique o front normalmente na Vercel. Os visitantes leem os arquivos pela própria CDN do site, sem fazer requisições ao TSE e sem consumir o Worker de apuração.
+Os visitantes leem os arquivos pela própria CDN do site, sem fazer requisições ao TSE e sem consumir o Worker de apuração. A publicação externa depende de autorização explícita.
+
+## Cloudflare Pages e cache
+
+A versão estática para Cloudflare Pages é gerada com `node scripts/preparar-pages.js`, na pasta `dist-pages/`. Ela mantém os formatos e os caminhos existentes, reúne scripts/estilos e gera nomes versionados para aproveitar o cache do navegador sem congelar futuras atualizações.
+
+Execute `node scripts/testar-pages.js` para testar o build e os banners localmente com Chrome/Edge. Execute `node scripts/testar-pages.js --fonte` para testar os arquivos-fonte e as regras de cache de `vercel.json`, sem empacotamento e sem simular os redirecionamentos do Pages. Nos dois modos, os snippets de entrega também são validados. Esses testes não publicam nada.
+
+A Vercel continua compatível com os arquivos-fonte. O projeto de teste Cloudflare usa Direct Upload, sem integração Git; um push no repositório não o atualiza automaticamente. Se houver deploy automático do Git na Vercel, um push poderá publicar alterações lá.
+
+Veja [CLOUDFLARE-PAGES.md](./CLOUDFLARE-PAGES.md) para o diagnóstico, a sequência de migração, as diferenças entre domínio próprio e endereço `vercel.app` e a validação necessária antes de alterar o DNS. Nada é publicado pelos scripts locais.

@@ -5,6 +5,15 @@ PACOTE DE BANNERS — GOOGLE AD MANAGER
 3. No Google Ad Manager, crie um criativo personalizado e cole o código.
 4. Não carregue embed.js e não use <previa-eleitoral-2026> no Ad Manager.
 
+DOMÍNIO E HOSPEDAGEM
+
+Os códigos usam previa.paineleleitoralnews.com.br. Mantendo esse domínio,
+trocar Vercel por Cloudflare não exige alterar os códigos dos clientes.
+
+previas-eleicao-2026.pages.dev é somente o endereço de teste. Se for testar,
+copie o snippet para um criativo separado e troque apenas o domínio do src.
+Não substitua o criativo em uso antes de aprovar o teste.
+
 TAMANHOS DO INVENTÁRIO
 
 Formato desktop         Tamanho       Criativo mobile
